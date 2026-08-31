@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>笠間城クエスト</title>
+
+  <!-- DotGothic16 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+
+    /* ==============================
+       基本
+    ============================== */
+    * {
+      box-sizing: border-box;
+    }
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+      color: #333;
+      font-family: "DotGothic16", sans-serif;
+    }
+    body {
+      min-height: 100vh;
+    }
+    /* ==============================
+       ページ
+    ============================== */
+    .page {
+      width: 100%;
+      max-width: 430px;
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 28px 22px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+    /* ==============================
+       ロゴ
+    ============================== */
+    .logo {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .logo img:first-child {
+      width: 35px;
+      height: 35px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+    .logo img:last-child {
+      width: 150px;
+      height: auto;
+      object-fit: contain;
+    }
+    /* ==============================
+       お知らせ
+    ============================== */
+    .news {
+      margin: 0 0 22px;
+      padding: 7px 0;
+      border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .news-label {
+      color: #bd1928;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    /* ==============================
+       メニュー
+    ============================== */
+    .menu {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    /* ==============================
+       ボタン
+    ============================== */
+    .menu-button,
+    .reference-button {
+      width: 100%;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      background: #ffffff;
+      color: #333;
+      border: 1px solid #d8d8d8;
+      border-radius: 6px;
+      text-decoration: none;
+      font-family: "DotGothic16", sans-serif;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .menu-button:hover,
+    .reference-button:hover {
+      background: #fafafa;
+    }
+    /* ==============================
+       ボタン文字
+    ============================== */
+    .menu-title {
+      color: #bd1928;
+      font-size: 15px;
+    }
+    .menu-sub {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+      color: #888;
+    }
+    .arrow {
+      color: #bd1928;
+      font-size: 20px;
+    }
+    /* ==============================
+       参考文献
+    ============================== */
+    .reference-button {
+      text-align: left;
+    }
+    .reference-list {
+      display: none;
+      padding: 3px 10px;
+      border-left: 1px solid #ddd;
+      border-right: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+      border-radius: 0 0 6px 6px;
+      background: #fafafa;
+    }
+    .reference-list.open {
+      display: block;
+    }
+    .reference-item {
+      display: block;
+      padding: 8px 5px;
+      color: #333;
+      text-decoration: none;
+      font-size: 12px;
+      border-bottom: 1px dotted #ccc;
+    }
+    .reference-item:last-child {
+      border-bottom: none;
+    }
+    .reference-item strong {
+      color: #bd1928;
+      font-weight: normal;
+    }
+    .reference-item span {
+      display: block;
+      margin-top: 2px;
+      font-size: 9px;
+      color: #888;
+    }
+    /* ==============================
+       フッター
+    ============================== */
+    .footer {
+      margin-top: auto;
+      padding-top: 18px;
+      text-align: center;
+      font-size: 9px;
+      color: #aaa;
+    }
+    /* ==============================
+       小さいスマホ
+    ============================== */
+    @media (max-height: 700px) {
+      .page {
+       padding-top: 18px;
+      }
+      .logo {
+       margin-bottom: 12px;
+      }
+      .news {
+       margin-bottom: 14px;
+      }
+      .menu {
+       gap: 7px;
+      }
+      .menu-button,
+      .reference-button {
+       min-height: 48px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <!-- ==========================
+        ロゴ
+    =========================== -->
+    <div class="logo">
+      <img
+       src="torii.png"
+       alt="⛩"
+      >
+      <img
+       src="logo.png"
+       alt="笠間城クエスト"
+      >
+    </div>
+    
+    <!-- ==========================
+        お知らせ
+    =========================== -->
+    <div class="news">
+      <span class="news-label">
+       お知らせ
+      </span>
+      <marquee scrollamount="4">
+       今日は地図を見ることができません。いつ見られるかはぼくに聞いてください🦊 K
+      </marquee>
+    </div>
+
+    <!-- ==========================
+        メニュー
+    =========================== -->
+    <div class="menu">
+        <!-- 古地図を歩く -->
+        <a
+         href=""
+         class="menu-button"
+        >
+       <div>
+         <span class="menu-title">
+           江戸時代笠間藩の地図を歩く
+         </span>
+         <span class="menu-sub">
+           GPSを使って昔の笠間の地図を歩くことができます
+         </span>
+       </div>
+          
+       <span class="arrow">›</span>
+          
+      </a>
+
+
+      <!-- 説明書 readme.html-->
+      <a
+       href=""
+       class="menu-button"
+      >
+       <div>
+         <span class="menu-title">
+           笠間城クエストの説明書
+         </span>
+         <span class="menu-sub">
+           準備中：操作の仕方を説明します。
+         </span>
+       </div>
+
+       <span class="arrow">›</span>
+
+      </a>
+
+      
+      <!-- 研究レポート report.pdf-->
+      <a
+       href=""
+       class="menu-button"
+       target="_blank"
+      >
+       <div>
+         <span class="menu-title">
+           自由研究のレポート
+         </span>
+         <span class="menu-sub">
+           準備中：PDFファイルを見る
+         </span>
+       </div>
+
+       <span class="arrow">›</span>
+      </a>
+
+
+      <!-- 参考文献 -->
+
+      <div>
+       <button
+         class="reference-button"
+         onclick="toggleReferences()"
+       >
+         <span class="menu-title">
+           参考資料
+         </span>
+
+         <span
+           class="arrow"
+           id="reference-arrow"
+         >
+           ＋
+         </span>
+       </button>
+
+
+       <div
+         class="reference-list"
+         id="reference-list"
+       >
+         <a
+           href="https://www.digital.archives.go.jp/img/697843#1"
+           class="reference-item"
+           target="_blank"
+         >
+           <strong>
+             正保の地図を見る
+           </strong>
+           <span>
+             常陸国笠間之城絵図（国立公文書館 　デジタルアーカイブ）
+           </span>
+         </a>
+
+         <a
+           href="https://www.lib.pref.ibaraki.jp/guide/shiryou/digital_lib/valuable_m/001051194791/Bibliography.html"
+           class="reference-item"
+           target="_blank"
+         >
+           <strong>
+             文政の地図を見る
+           </strong>
+           <span>
+             笠間城下之図 , 文政之頃（茨城県立図書館デジタルアーカイブ）
+           </span>
+         </a>
+       </div>
+      </div>
+
+
+      <!-- このサイトについて about.html-->
+      <a
+       href=""
+       class="menu-button"
+      >
+       <div>
+         <span class="menu-title">
+           このサイトについて
+         </span>
+         <span class="menu-sub">
+           準備中
+         </span>
+       </div>
+       <span class="arrow">›</span>
+      </a>
+    </div>
+</div>
+
+<!-- ==========================
+     フッター
+=========================== -->
+
+<div class="footer">
+  笠間城クエスト
+</div>
+  </main>
+
+
+  <script>
+
+    function toggleReferences() {
+      const list =
+       document.getElementById("reference-list");
+
+      const arrow =
+       document.getElementById("reference-arrow");
+
+      list.classList.toggle("open");
+
+      if (list.classList.contains("open")) {
+       arrow.textContent = "−";
+      } else {
+       arrow.textContent = "＋";
+      }
+    }
+
+  </script>
+
+</body>
+
+</html>

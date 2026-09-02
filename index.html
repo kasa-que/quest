@@ -7,6 +7,12 @@
 
   <title>笠間城クエスト</title>
 
+  <script
+  data-goatcounter="https://kasa-que.goatcounter.com/count"
+  async
+  src="//gc.zgo.at/count.js">
+  </script>
+
   <!-- DotGothic16 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -83,6 +89,63 @@
       color: #bd1928;
       font-weight: bold;
       margin-right: 8px;
+    }
+    /* ==============================
+       おすすめ
+    ============================== */
+    .pickup {
+      margin: 0 0 16px;
+      padding: 10px 0 12px;
+      //border-top: 1px solid #ddd;
+      border-bottom: 1px solid #ddd;
+    }    
+    .pickup-label {
+      margin-bottom: 7px;
+      color: #bd1928;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }    
+    .pickup-image {
+      width: 105px;
+      height: 90px;
+      object-fit: cover;
+      display: block;
+      float: left;
+      margin: 0 10px 5px 0;
+      border-radius: 4px;
+    }
+    
+    .pickup-title {
+      margin: 0 0 3px;
+      color: #333;
+      font-size: 13px;
+      font-weight: bold;
+      line-height: 1.4;
+    }
+    
+    .pickup-text {
+      margin: 0 0 6px;
+      color: #777;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+
+
+    .pickup-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+      color: #bd1928;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .pickup-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: #ddd;
     }
     /* ==============================
        メニュー
@@ -182,6 +245,17 @@
       font-size: 9px;
       color: #aaa;
     }
+    .site-counter {
+      margin-top: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 3px;
+    }
+    .site-counter img {
+      height: 12px;
+      width: auto;
+    } 
     /* ==============================
        小さいスマホ
     ============================== */
@@ -371,8 +445,16 @@
 =========================== -->
 
 <div class="footer">
-  笠間城クエスト
+  <div>笠間城クエスト</div>
+
+  <div class="site-counter">
+    <img
+      src="https://www.daniel-marschall.de/counter/counter.php?id=kasamajoquest202609&format=graphic&theme=digital"
+      alt="訪問数"
+    >
+  </div>
 </div>
+
   </main>
 
 

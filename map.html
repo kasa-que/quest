@@ -1,0 +1,3881 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>笠間城クエスト</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.fcom/css2?family=Yuji+Syuku&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet（地図ライブラリ） -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body { margin: 0; font-family:   sans-serif,serif;   background-color: #FFFFFF;  }
+    #map { height: 60vh; }
+    #panel { padding: 10px; }
+    button { font-size: 16px; padding: 8px 12px; cursor: pointer; }
+    .stamp { font-size: 20px; margin-bottom: 10px; }
+    .jump-pin{color:#e6b422; font-weight:bold; text-decoration:underline;}
+    .cl-point{margin: 5px 0; padding-left: 10px;}
+
+
+       /* =================================
+          🦊 フォックスメッセージ
+         ================================= */
+      #fox-message {
+        font-family: "DotGothic16", sans-serif;
+        margin: 0;
+        color: #333333;
+        line-height: 1.5;
+        font-size: 14px;
+        letter-spacing: 0.5px;
+      }
+      .m-h-l {
+        background: linear-gradient(
+          transparent 35%,
+          #fff176 35%,
+          #fff176 90%,
+          transparent 90%
+        );
+        padding: 0 3px;
+        font-weight: bold;
+      }
+
+     /* =================================
+        ◽️ 四角ボタン
+       ================================= */
+    .custom-map-control {
+      background: rgba(255, 255, 255, 0.65); 
+      backdrop-filter: blur(4px); 
+      border-radius: 4px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.3);
+      font-family: sans-serif;
+      font-size: 13px;
+      color: #333;
+      box-sizing: border-box;
+    }
+    
+    /* クエスト選択中：赤ピコ */
+    .custom-map-control.quest-active {
+      animation: questGlow 1.6s ease-in-out infinite;
+    }
+    @keyframes questGlow {
+      0%, 100% {box-shadow: 0 1px 5px rgba(0,0,0,0.3), 0 0 5px rgba(190,30,40,0.35), 0 0 10px rgba(190,30,40,0.20);}
+      50% { box-shadow: 0 1px 5px rgba(0,0,0,0.3), 0 0 9px rgba(190,30,40,0.75), 0 0 18px rgba(190,30,40,0.40);}
+    }
+    
+    /* 足跡記録中：赤ピコ */
+    .custom-map-control.track-active {animation: trackGlow 1.6s ease-in-out infinite;}
+    @keyframes trackGlow {
+      0%, 100% { box-shadow: 0 1px 5px rgba(0,0,0,0.3), 0 0 5px rgba(190,30,40,0.35), 0 0 10px rgba(190,30,40,0.20);}
+      50% { box-shadow: 0 1px 5px rgba(0,0,0,0.3), 0 0 9px rgba(190,30,40,0.75), 0 0 18px rgba(190,30,40,0.40); }
+    }
+    
+    /* すべての四角パネルの最小高さを「36px」に固定 */
+    .custom-map-control.collapsed,
+    .custom-map-control.expanded {
+      min-height: 36px !important;
+      display: flex;
+      align-items: center; /* 文字や画像　縦中央 */
+    }
+    /* 最小化（閉じている時）の見た目（36px四方の正方形） */
+    .custom-map-control.collapsed {
+      width: 36px;
+      height: 36px;
+      justify-content: center;
+    }
+    /* 共通：イラストアイコンを縦横28pxに固定 */
+    .custom-map-control .control-icon {
+      width: 28px !important;
+      height: 28px !important;
+      flex-shrink: 0 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* 右上パネル用：expanded時は、大元の四角アイコンを完全に画面から消去 */
+    .custom-map-control.expanded .control-icon-toggle {
+      display: none !important;
+    }
+    /* 中の手書きイラスト画像自体の設定 */
+    .custom-map-control .control-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+    /* expanded時の見た目 */
+    .custom-map-control.expanded {
+      width: auto;
+      padding: 6px 10px;
+    }
+    .custom-map-control h4 {
+      margin: 0 0 6px 0;
+      font-size: 12px;
+      color: #666;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 3px;
+      white-space: nowrap;
+    }
+    .custom-map-control label {
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .custom-map-control input {
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+    .custom-map-control .control-content {
+      display: none;
+    }
+    .custom-map-control.expanded .control-content {
+      display: block;
+    }
+   /* =================================
+        四角ボタン　ここまで
+       ================================= */
+
+    
+    /* =================================
+       🦊安全確認
+       ================================= */
+    #safety-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(5px);
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* ==============================
+       注意書きボックス
+    ============================== */
+    .safety-content {
+      background: #ffffff;
+      border: 1px solid #d8d8d8;
+      border-radius: 7px;
+      width: 90%;
+      max-width: 400px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      box-sizing: border-box;
+      font-family: "DotGothic16", sans-serif;
+    }  
+    /* ==============================
+       タイトル
+    ============================== */
+    .safety-content h3 {
+      margin: 0 0 15px 0;
+      color: #bd1928;
+      font-family: "DotGothic16", sans-serif;
+      font-size: 17px;
+      font-weight: normal;
+    }
+    /* ==============================
+       スクロール部分
+    ============================== */
+    .safety-scroll-box {
+      text-align: left;
+      max-height: 50vh;
+      overflow-y: auto;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      padding: 12px;
+      border-radius: 5px;
+      font-family: sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+    }
+    /* ==============================
+       本文
+    ============================== */
+    .safety-scroll-box p {
+      margin: 0 0 10px 0;
+    }
+    .safety-scroll-box ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .safety-scroll-box li {
+      margin-bottom: 12px;
+    }
+    /* ==============================
+       同意ボタン
+    ============================== */
+    .agree-btn {
+      width: 100%;
+      margin-top: 15px;
+      background-color: #bd1928;
+      color: #ffffff;
+      border: none;
+      border-radius: 5px;
+      font-family: "DotGothic16", sans-serif;
+      font-size: 13px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    /* 押せる状態 */
+    .agree-btn:hover:not(:disabled) {
+      background-color: #9f1622;
+    }
+    /* まだ読んでいない状態 */
+    .agree-btn:disabled {
+      background-color: #ddd !important;
+      color: #999 !important;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+    /* =================================
+       安全確認ここまで
+       ================================= */
+
+    
+    /* =================================
+       🧭 方位磁石
+       ================================= */
+    /* 回転しない背景画像 */
+    #my-compass-wrapper {
+      position: absolute;     
+      /* カドの位置へ*/
+      top: 10px;          
+      left: 10px;         
+      width: 48px;        
+      height: 48px;  
+      z-index: 1000;
+      pointer-events: auto;            
+      border-radius: 50% !important; 
+      box-shadow: 0 1px 5px rgba(0,0,0,0.3) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      /* 回転しない固定の背景画像 */
+      background-image: url("cmp_bg.png"); 
+      background-size: 80%; 
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    /* クルクル回転する画像 */
+    #my-live-compass {
+      width: 100%;        /* 土台いっぱい */
+      height: 100%;
+      background-image: url("cmp.png"); 
+      background-size: 80%;
+      background-repeat: no-repeat;
+      background-position: center;
+      pointer-events: none;
+      /* 回る動きを滑らかにする */
+      transition: transform 0.1s ease-out; 
+    } 
+    /* =========================================
+   方位磁石・ゲット
+   ========================================= */
+    #my-compass-wrapper.compass-doron {
+      animation: compassDoron 1s ease-out;
+    }
+    /* 方位磁石のドロン煙*/
+    #my-compass-wrapper.compass-doron::before {
+      content: "💭";
+      position: absolute;
+      left: 5px;
+      top: -10px;
+      font-size: 42px;
+      opacity: 0;
+      animation: smokeBigDoron 1s ease-out;
+      pointer-events: none;
+    }
+    @keyframes smokeBigDoron {
+      0% {opacity: 0;transform: scale(0.4);}
+      30% {opacity: 1;transform: scale(1.2);}
+      100% {opacity: 0;transform: scale(1.8) translate(8px, -8px);}
+    }
+    #my-compass-wrapper.compass-doron::after {
+      content: "💭 💭";
+      position: absolute;
+      left: -15px;
+      top: 55px;
+      font-size: 24px;
+      white-space: nowrap;
+      animation: smokeDoron 1s ease-out;
+      pointer-events: none;
+    }
+    @keyframes smokeDoron {
+      0% {opacity: 0;transform: scale(0.5);}
+      30% {opacity: 1;transform: scale(1.2);}
+      100% {opacity: 0;transform: scale(1.8) translate(-5px, -10px);}
+    }
+    @keyframes compassDoron {
+       0% {transform: scale(0);opacity: 0;}
+      40% {transform: scale(1.5) rotate(-10deg);opacity: 1;}
+      65% {transform: scale(0.9) rotate(8deg);}
+      80% {transform: scale(1.1) rotate(-4deg);}
+      100% {transform: scale(1) rotate(0deg);opacity: 1;}
+    }
+    /* =================================
+       方位磁石ここまで
+       ================================= */
+    
+    
+    /* =================================
+       📕 スタンプ帳
+       ================================= */
+    .stamp-grid + .inventory-title {
+      border-top: 3px double #bd1928;
+      padding-top: 8px;
+      margin-top: 28px;
+    }
+    .inventory-title {
+      margin: 18px 0 6px;
+      padding: 6px 8px;
+      font-family: "DotGothic16", sans-serif;
+      font-size: 18px;
+      font-weight: normal;
+      color: #333333;
+    }
+    .quest-locked {
+      color: #aaa;
+    }
+    .stamp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      width: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+    .stamp-item {
+      text-align: center;
+      padding: 10px 4px 8px;
+      border-right: 1px solid #dddddd;
+      border-bottom: 1px solid #dddddd;
+      box-sizing: border-box;
+      cursor: pointer;
+      transition:
+      background-color 0.15s,
+      transform 0.15s;
+    }
+    /* スタンプ画像 */
+    .stamp-image {
+      width: 62px;
+      height: 62px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 4px;
+    }
+    /* スタンプ名 */
+    .stamp-name {
+      font-family: "DotGothic16", sans-serif;
+      font-size: 13px;
+      line-height: 1.3;
+      text-align: center;
+      color: #333333;
+    }
+    /* =================================
+       カテゴリータイトル
+       ================================= */
+    .stamp-category-title {
+      margin: 18px 0 6px;
+      padding: 6px 8px;
+      font-family: "DotGothic16", sans-serif;
+      font-size: 16px;
+      font-weight: normal;
+      border-bottom: 1px solid #dddddd;
+      color: #bd1928;
+    }
+    /* 最初の分類だけ少し上の余白を小さく */
+    .stamp-category-title:first-of-type {
+      margin-top: 8px;
+    }
+    /* =================================
+       スマホ：3列
+       ================================= */
+    .stamp-item:nth-child(3n) {
+      border-right: none;
+    }
+    /* =================================
+       タブレット・PC：4列
+       ================================= */
+    @media (min-width: 600px) {
+      .stamp-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      /* いったん全部右線ありに戻す */
+      .stamp-item:nth-child(3n) {
+        border-right: 1px solid #dddddd;
+      }
+      /* 4列目だけ右線なし */
+     .stamp-item:nth-child(4n) {
+        border-right: none;
+      }
+    }
+    /* =================================
+       タッチ・ホバー
+       ================================= */
+    .stamp-item:hover {
+      background-color: rgba(0, 0, 0, 0.03);
+    }
+    .stamp-item:active {
+      transform: scale(0.96);
+    }
+    /* =================================
+       スタンプ帳ここまで
+       ================================= */
+
+    /* =================================
+       追加
+       ================================= */
+    /* 📱 スマホ：吹き出しの幅 */
+    @media (max-width: 600px) {
+      .leaflet-popup-content-wrapper {
+        max-width: 300px;
+      }
+    }
+
+  </style>
+</head>
+
+  
+  
+<body>
+<!-- 🦊　安全確認 -->
+<div id="safety-modal">
+  <div class="safety-content">
+    <div style="font-size: 30px; margin-bottom: 10px;">🦊</div>
+    <h3 style="font-family: sans-serif; font-weight: bold;">安全のためのお願い</h3>
+    <div id="safety-scroll" class="safety-scroll-box">
+      <p>笠間城クエストを安全に楽しむために、<strong><span class='m-h-l'>必ず大人と一緒に</span></strong>行動し、以下の約束を守ってください。</p>
+      <ul>       
+        <li><strong>交通ルールを守る：</strong> 笠間城クエストの地図や案内よりも、実際の交通ルールを必ず優先してください。道路を歩くときは、周囲の車や自転車などに十分注意し、安全を確認して行動してください。</li>
+        <li><strong>危険な場所には近づかない：</strong> 倒木、崩れかけた石垣、急な斜面など、現地で危険だと感じる場所には近づかないでください。地図に道や目印が表示されていても、無理に進まず、現地の状況を自分の目で確認して、安全な範囲で楽しんでください。</li>
+        <li><strong>歩きながらスマートフォンを操作しない：</strong> スマートフォンの画面を見るときは、必ず安全な場所で立ち止まってください。周囲の人や車、自転車、足元などに十分注意してください。</li>
+        <li><strong>GPSの位置情報は正確ではありません：</strong> GPS（位置情報）は、特に山の中、谷、木が多い場所などでは、現在地が大きくずれることがあります。地図上の現在地マークが実際の場所と異なる場合もあります。GPSだけを頼りにせず、周囲の景色や案内表示なども確認しながら行動してください。</li>
+        <li><strong>電池の消費に注意してください：</strong> このwebサイトではGPS（位置情報）を使用するため、スマートフォンのバッテリーを多く消費することがあります。出発前に十分な充電をし、必要に応じてモバイルバッテリーなどを準備してください。</li>
+        <li><strong>無理をせず、安全な計画で行動してください：</strong> 山道や城跡には、足元が悪い場所や急な斜面があります。天候が悪いときや体調がすぐれないときは、無理をせず中止してください。クエストをクリアすることよりも、安全に楽しむことを優先してください。未成年の方は、保護者など大人の方と一緒に、安全を確認したうえで行動してください。</li>
+        <li><strong>歩きやすい服装・装備を準備してください：</strong> 山道や未舗装の道を歩くことがあります。サンダルや滑りやすい靴は避け、歩きやすく滑りにくい靴を使用してください。季節や天候に合わせて、虫除け・雨具・飲み物なども必要に応じて準備してください。</li>
+        <li><strong>現地の案内・ルールを優先してください：</strong> このwebサイトは、笠間城や城下町を楽しく知ることを目的としています。掲載している地図や情報が、現在の現地の状況と異なる場合があります。現地では最新の案内表示や施設のルールを確認し、立入禁止区域や私有地には入らないでください。</li>  
+      </ul>
+      <p style="font-size: 12px; color: #7f8c8d; margin-top: 15px;">
+      ※本webサイトの情報は、安全を保証するものではありません。現地では最新の案内や状況を確認し、安全を第一にご利用ください。
+      </p>
+    </div>
+    <button id="agree-button" onclick="agreeSafety()" class="agree-btn" disabled style="font-family: sans-serif;">
+      下までスクロールして規約を確認してください
+    </button>
+  </div>
+</div>
+<!-- 安全確認　ここまで -->
+
+  
+<div style="text-align: center; padding: 5px 0 5px 0; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+  <img src="torii.png" alt="⛩" style="width: 35px; height: 35px; object-fit: contain; display: block;">
+  <img src="logo.png" alt="笠間城クエスト" style="width: 150px; height: auto; object-fit: contain; display: block; margin-top: 2px;">
+</div>
+
+  
+<div id="map"></div>
+
+  
+<div id="panel">
+  <div style="
+  background-color: #ffffff;
+  border: 1px solid #dddddd;
+  border-radius: 7px;
+  padding: 10px;
+  margin: 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  ">
+    
+    <img src="fox.png" alt="いな" style="width: 70px; height: 70px; object-fit: contain; flex-shrink: 0;">
+    
+    <p id="fox-message">
+      <span class="m-h-l">地図の中の目印</span>をタッチして行きたいところを探してね！<br/>
+    </p>
+  </div>
+  
+  <div id="stamps"></div>
+</div>
+
+
+
+
+  
+<script>
+  const CORRECT_PASSWORD = "ともごろう";
+  let userInput = prompt("パスワード");
+  if (userInput !== CORRECT_PASSWORD) {
+    alert("違います");
+    document.body.innerHTML = "<div style='padding:20px; font-family:sans-serif; text-align:center;'></div>";
+    if (document.referrer) {
+      window.location.href = document.referrer;
+    } else {
+      window.history.back();
+    }
+  }
+ 
+  let currentLocationMarker = null;
+  let currentLat = 36.385662; // 最後に取得した現在地の緯度
+  let currentLng = 140.254050; // 最後に取得した現在地の経度
+  const markers = {};    // 各スポットのマーカーを管理する箱
+  // ====================================================
+  // 🦊 クエスト用マーカーを入れておく箱
+  // ====================================================
+  const questMarkers = {};
+  const questClearMarkers = {};
+  // ====================================================
+  // 🦊 データ　🦊
+  // ====================================================
+  const spots = [
+
+  // ====================================================
+  // 🏯 建物　bld　🏯　神社寺⛩️
+  // ====================================================
+  {
+    id: "bld_01",
+    name: "笠間稲荷神社",
+    lat: 36.385662, lng: 140.254050,    radius: 30,
+    info: "651年に作られて、江戸時代中期に藩主井上正賢が、小さな社だったのを現在のような大きな社にして笠間城の祈願所にしました。江戸時代の終わりになるとお参りに来る人が増えたそうです。別名、胡桃下稲荷神社。"
+  }
+  ,{
+    id: "bld_02",
+    name: "正福寺（あと）",
+    lat: 36.384785, lng: 140.267209,    radius: 30,
+    info: "昔はここの的場丸の向かいにありましたが、今では麓にあります。この正福寺が城里町の徳蔵寺と争って鎮圧するために笠間時朝が宇都宮から来たり、大黒石の言い伝えにも正福寺が出てきます。"
+  }
+  ,{
+    id: "bld_03",
+    name: "弁財天",
+    lat: 36.3858092, lng: 140.2623968,    radius: 30,
+    info: "弁財天では坂本九の石碑の近くに石段がありそこを登るとたどり着くことができます。近くに坂本九が疎開した家があります。"
+  }
+  ,{
+    id: "bld0_4",
+    name: "玄勝院",
+    lat: 36.383368, lng: 140.260703,    radius: 30,
+    info: "玄勝院は下屋敷のところにあったのを下屋敷を作るために山の下に下ろされたのでその頃から今の位置にあったようです。"
+  }
+  //,{id: "bld_05",name: "三所明神",lat: 36.388444, lng: 140.258514,    radius: 30,info: "⚠️"}
+  //,{id: "bld_06", name: "月宗寺",lat: 36, lng: 140, radius: 30, info: "⚠️" }
+ ,{
+    id: "bld_10",
+    name: "佐志能神社",
+    lat: 36.382576, lng: 140.267491,radius: 30,
+    info: "天守櫓があったところに建っていて、小山高専の人の研究によると佐志能神社は、天守櫓の一部を使っていて最近までほぼ同じ状態で残っているそうです。なのでためもしかしたら１３番めの現存天守に入るかもしれません！<br/>東日本大震災で危ない状況になっているので入れません。※２０２６年の時点ではまだ入れません。"
+  }
+  
+// ====================================================
+// 🏯 建物　bld　🏯　やぐら
+// ====================================================
+,{
+    id: "bld_11",
+    name: "八幡台櫓",
+    lat: 36.382503, lng: 140.266092,radius: 30,
+    info: "5m盛り上がったところに２階建ての櫓があり、普段は武器の倉庫に、戦いのときは物見櫓として使われていました。また八幡台櫓と思われる櫓が<a class='jump-pin' href='javascript:void(0)' onclick='jumpToMapMarker(\"now_02\")' >真浄時</a>に移設されています。"
+  }    
+,{
+    id: "bld_12",
+    name: "宍々崎櫓",
+    lat: 36.383066, lng: 140.265013,radius: 30,
+    info: "笠間城にあるいちばん西にある櫓で、城下町がひと目で見渡せるような場所に建っています。地面に今でも礎石が見られます。"
+  }
+    
+// ====================================================
+// 🏯 建物　bld　🏯　時習館
+// ====================================================
+,{
+    id: "bld_21",
+    name: "講武館",
+    lat: 36.383596, lng: 140.255665,radius: 30,
+    info: "武芸を教える場所で、ここでは小野友五郎も武芸を習得しに通いに行った場所です。講武館は１５歳以上になると入れます。"
+  }
+,{
+    id: "bld_22",
+    name: "博采館",
+    lat: 36.383269, lng: 140.257158,radius: 30,
+    info: "博采館は長谷川宗仙の家の一部で医学の勉強をするところで、ここには 薬草園も設けられて薬草を育てて研究をしていました。"
+  }
+//,{ id: "bld23",name: "五騎町時習館",lat: 36, lng: 140,radius: 30,info: "⚠️"}
+//,{id: "bld24", name: "桜町時習館",lat: 36, lng: 140,radius: 30,info: "⚠️"}
+//,{id: "bld25",name: "大和田時習館",lat: 36, lng: 140,radius: 30,info: "⚠️"}
+    
+// ====================================================
+// 🏯 建物　bld　🏯　下屋敷
+// ====================================================
+,{
+    id: "bld_31",
+    name: "時鐘",
+    lat: 36.383962, lng: 140.258958,
+    radius: 30,
+    info: "昔は今の場所ではなくて下屋敷の西側のこの辺りに時鐘の鐘楼が建っていて時を知らせていたそうです。"
+  }
+,{
+    id: "bld_32",
+    name: "藩主御殿",
+    lat: 36.384274, lng: 140.259911,
+    radius: 30,
+    info: "下屋敷の藩庁の東側にある藩主御殿には藩主とその家族が住んでいました。普通、藩主御殿は本丸や二の丸に建てられるのですが、笠間城の場合は下屋敷に建てられています。"
+  }
+,{
+    id: "bld_33",
+    name: "下屋敷",
+    lat: 36.384209, lng: 140.259625,
+    radius: 100,
+    info: "下屋敷は役所で、下屋敷ができる前は笠間城が政治の場所だったのが、役人が毎日登ったり下ったりするから大変だということで、1643年藩主浅野長直の頃に下屋敷がつくられました。広さは総畳数769畳。"
+  }
+
+// ====================================================
+// 🛡️ 防御　dfc　🛡️　門
+// ====================================================
+,{
+    id: "dfc_01",
+    name: "町口門",
+    lat: 36.385030, lng: 140.257151 ,    radius: 30,
+    info: "城下町から笠間城へ行くときに最初に通る門です。一般の人は通れなく一般の人は正福寺へ行くときは大町にある「旅籠」というのに乗って町口門を通ることができたらしいです。"
+  }
+,{
+    id: "dfc_02",
+    name: "黒門",
+    lat: 36.385855, lng: 140.265884,
+    radius: 30,
+    info: "ここを通る人は町口門や坂尾口から城へと行く人なのでちゃんとチェックされます、また門の前には深い堀があって正保の地図によると三間半もの深さの堀があったそうです。一間は約181cmです。（⚠️正福寺側の斜面にえぐれてるところある？あと堀の跡も確認）"
+  }
+,{
+    id: "dfc_03",
+    name: "大手門",
+    lat: 36.383986, lng: 140.266665,
+    radius: 30,
+    info: "大手門はお城の正門で守りが堅い門で、門の上に櫓があって門をくぐり抜けるのにも大変でした。的場丸を突破した敵をここで食い止め、大手門の手前には土塁があってまっすぐには進めませんでした。門を超えた後は4mもの石垣があったそうです。"
+  }
+,{
+    id: "dfc_04",
+    name: "中之門",
+    lat: 36.383679, lng: 140.266193,
+    radius: 30,
+    info: "中之門は二の曲輪と三の曲輪の間に挟まっている門で中之門は今でも石垣が一部残されてあります。"
+  }
+,{
+    id: "dfc_05",
+    name: "二之門",
+    lat: 36.383502, lng: 140.266193,
+    radius: 30,
+    info: "この門を突破すると二の曲輪に入れるようになっています。二之門は少しだけ痕跡を見ることができます。"
+  }
+,{
+    id: "dfc_06",
+    name: "玄関門",
+    lat: 36.383176, lng: 140.266139,
+    radius: 30,
+    info: "玄関門は本丸に入る門でその門の前には二の門や中門がありこの門を突破したら近くに屋館があったようです。"
+  }
+,{
+    id: "dfc_07",
+    name: "裏門",
+    lat: 36.382668, lng: 140.266295,
+    radius: 30,
+    info: "本丸にある門でこの門にたどり着くまでは周りの地形に合わせて３回グネグネの道があったようです。"
+  }
+,{
+    id: "dfc_08",
+    name: "東櫓門",
+    lat: 36.382496, lng: 140.266660,
+    radius: 30,
+    info: "東櫓門は大手門と同じで門の上に櫓が乗っていて天守に行こうとしている敵を防ごうという姿勢が感じられます。"
+  }
+,{
+    id: "dfc_09",
+    name: "的場丸門",
+    lat: 36.384662, lng: 140.267242,
+    radius: 30,
+    info: "的場丸門は笠間城に入る時に最初にたちはだかる門です。"
+  }
+    
+// ====================================================
+// 🛡️ 防御　dfc　🛡️　虎口
+// ====================================================
+,{
+    id: "dfc_11",
+    name: "坂尾口",
+    lat: 36.391243, lng: 140.268344,
+    radius: 30,
+    info: "坂尾口は食い違い虎口になっていて、今でもその食い違っている現存の土塁を見ることができます。"
+  }
+,{
+    id: "dfc_12",
+    name: "鍵の手",
+    lat: 36.388916, 
+    lng: 140.256164,
+    radius: 30,
+    info: "敵の侵入を防ぐために創られていて、枡形と同じ役目で同じように敵を直角に曲がらせる仕組みです。曲がり道は奥が見えないから、敵が天守に行くまでに、最短ルートで行っても十分に攻撃ができるように曲がらせたりとかして、攻撃するところを作るていう仕掛けです。"
+  }
+,{
+    id: "dfc_13",
+    name: "宇都宮口",
+    lat: 36.390018, lng: 140.251985,
+    radius: 30,
+    info: "宇都宮の方から小貫通を通って涸沼川を渡ったところにある虎口です。土塁で囲まれていて、敵が早く本丸へ行けないようにした防御施設です。"
+  }
+,{
+    id: "dfc_14",
+    name: "高橋口",
+    lat: 36.385412, lng: 140.250749,
+    radius: 30,
+    info: "結城の方から真壁通を通って涸沼川を渡ったところにある虎口です。土塁で囲まれていて、敵が早く本丸へ行けないようにした防御施設です。"
+  }
+,{
+    id: "dfc_15",
+    name: "愛宕口",
+    lat: 36.388753, lng: 140.257138,
+    radius: 30,
+    info: "水戸の方から結城道を通って城下町に入るところの虎口です。土塁で囲まれていて、敵が早く本丸へ行けないようにした防御施設です。ズレているふたつの道を現代ではつなげているので現代の道はグネグネ曲がって先が見通せません。"
+  }
+,{
+    id: "dfc_16",
+    name: "宍戸口",
+    lat: 36, lng: 140,
+    radius: 30,
+    info: "江戸の方から宍戸通を通って城下町に入るところの虎口です。土塁で囲まれていて、敵が早く本丸へ行けないようにした防御施設です。現代では少し変にくねっとしています。"
+  }
+//,{id: "dfc_17",name: "謎の桝形",lat: 36, lng: 140,radius: 30,info: "⚠️"}
+,{
+    id: "dfc_18",
+    name: "桝形",
+    lat: 36.384129, lng: 140.256148,
+    radius: 30,
+    info: "城下町に入るところの虎口です。土塁で囲まれていて、敵が早く本丸へ行けないようにした防御施設です。山居近くの桝形は縦百ｍくらいもの大きさがあり、絶対、城や上級家臣のところに行かせないような姿勢が感じられます。"
+  }
+    
+// ====================================================
+// 🛡️ 防御　dfc　🏯　曲輪
+// ====================================================
+ ,{
+    id: "dfc_21",
+    name: "千人溜",
+    lat: 36.384463, lng: 140.266957,    radius: 30,
+    info: "千人溜は戦いのときに武士が集まる場所です。入口には的場丸門があり周りをぐるりと塀で囲んであります。ここは鉄砲や弓なども練習するので的場丸という名前もついています。現代は駐車することができます。"
+  }
+  ,{
+    id: "dfc_22",
+    name: "二の曲輪",
+    lat: 36.383611, lng: 140.265986,    radius: 30,
+    info: "二の曲輪はぐるりと塀で囲んであって出入り口は１つしかなく南には本丸があります。危ないから奥に入らないでください。"
+  }
+  ,{
+    id: "dfc_23",
+    name: "本丸",
+    lat: 36.382887, lng: 140.265951,    radius: 30,
+    info: "本丸は城の中心となる最も重要な曲輪です。本丸には八幡台櫓、東櫓門、宍々崎櫓などいっぱいの櫓や門がそびえ立っていて周りを塀で囲んであります。"
+  }
+  ,{
+    id: "dfc_24",
+    name: "天守曲輪",
+    lat: 36.382671, lng: 140.267301,    radius: 30,
+    info: "天守曲輪は蒲生の時代に周りを塀で囲んでいて一番高いところにある曲輪でこの曲輪はどの曲輪よりも高い石垣が積んであります。地震での倒壊で見れないところがあります。"
+  }
+    
+// ====================================================
+// 🌊 防御　dfc　🛡️　堀
+// ====================================================
+  ,{
+    id: "dfc_31",
+    name: "桜町時習館の堀",
+    lat: 36.378163, lng: 140.253828,    radius: 30,
+    info: "桜町時習館のまわりにある堀は今でも暗渠の形になって残っています。暗渠は今でも水が流れているけれど塞いで見えなくなっているところのことです。"
+  }
+    
+// ====================================================
+// ✨ 現存　now　✨　
+// ====================================================
+//,{id: "now_01",name: "移築もん",lat: 36.3951, lng: 140.26607,radius: 30,info: ""}
+  ,{
+    id: "now_02",
+    name: "現存の櫓（真浄寺のなか）",
+    lat: 36.390546, lng: 140.258482,    radius: 30,
+    info: "明治時代の「廃城令」によって悲しんだ侍が、笠間城の状態のいい櫓をここ真浄寺に許可をもらって移して、これは<a class='jump-pin' href='javascript:void(0)' onclick='jumpToMapMarker(\"bld_11\")' >八幡台櫓</a>だと言われていますが本当かどうかはわかっていません。"
+  }
+
+// ====================================================
+// ⭐️ 言い伝え　rcm　⭐️
+// ====================================================
+  ,{
+    id: "rcm_01",
+    name: "高橋",
+    lat:  36.385009,
+    lng: 140.252870,
+    radius: 30,
+    info: "高橋は麓城の水堀をわたるために創られた橋でこの橋は高かったことから高橋という名前がというそうです。<br/>江戸時代の絵図の麓城の堀のひょうたん型のカーブと、門前通りに交差する道の角度が一致するため、堀の位置を予想したので、高橋はここにあったと予想しました。"
+  },
+  {
+    id: "rcm_02",
+    name: "思案橋",
+    lat: 36.385056, lng: 140.256422,
+    radius: 30,
+    info: "結城街道と町口門の間にある蒲生用水を超えるための橋で、思案という言葉は笠間時朝が正福寺を攻めるかどうか思案したからこの名前がついたそうです。"
+  },
+  {
+    id: "rcm_03",
+    name: "大黒石",
+    lat: 36.386113, lng: 140.265563,
+    radius: 30,
+    imgOn: "rcm_03.png",
+    info: "徳蔵寺に攻められた時に、正福寺が落として攻撃した岩で、潰されたらひとたまりもないです。大黒石は、大黒様の袋の部分で大黒様本体はどこかに行ってしまいました。なのに、大黒石の穴は大黒のおへそと言われていて、小石を三つ続けて投げてひとつでも入れば幸せになるそうです。"
+  },
+  {
+    id: "rcm_04",
+    name: "下屋敷の逆さ杭？！",
+    lat: 36.384393, lng: 140.259511,
+    radius: 30,
+    info: "浅野長直が役人が大変だから作っただけなのに、江戸時代は一国一城令が出されたのに「笠間が新城を作った」という噂で幕府から監察使を笠間へ送り出し笠間では城じゃないことを示すため一夜で塀を壊して粗朶垣根（そだがきね）に作り変えた時に大慌てだし夜だったので逆さに杭を打ってしまったので「下屋敷の逆杭(さかさくい)」という言い伝えがあります。"
+  },
+  {
+    id: "rcm_05",
+    name: "笠間時朝の伝説",
+    lat: 36.383160, lng: 140.265887,
+    radius: 30,
+    info: "宇都宮氏の一員の時朝は１２１９年に笠間城を作り始め１２３５年に完成したと言われていますが、当時は鎌倉時代だったので山に城を作るというのは考えられないため、その頃は麓城で、時代が進むに連れ、今の佐白山の城へと変化したと考えられています。"
+  }
+
+// ====================================================
+// 町名　twn
+// ====================================================
+  ,{
+    id: "twn_01",
+    name: "高橋町",
+    lat: 36.385004,  lng: 140.254115,    radius: 30,
+    info: "1594年に玉生氏が幅六間の道を作って石井の人たちを移して町人町を作った。麓城の水堀にぶつかるので高い橋をかけたから高橋町という名前になりました。"
+  },
+  {
+    id: "twn_02",
+    name: "梅ヶ枝町",
+    lat:  36.386903,  lng: 140.253678,      radius: 30,
+    info: "鎌倉時代からここのあたりには笠間氏の麓城があって、江戸時代には座頭町と言って茶園もあったそうです。"
+  },
+  {
+    id: "twn_03",
+    name: "鷹匠丁",
+    lat: 36.387313, lng: 140.253466,    radius: 300000,
+    imgOn: "twn_03.png",
+    info: "鎌倉時代からここのあたりには笠間氏の麓城があった。真浄寺があったので「法華町（ほっけちょう）」という名前でしたが、浅野長直が侍町にするために寺を移して鷹匠が住んだので鷹匠町になりました。"
+  },
+  {
+    id: "twn_04",
+    name: "新丁",
+    lat: 36.386266, lng: 140.255224,    radius: 30,
+    info: "1640年に浅野長直が田をうめたてて町人町を作った。けれど文政の地図には新丁と書かれているので武士の町なのではないかと思ったので不思議です。"
+  },
+  {
+    id: "twn_05",
+    name: "大町",
+    lat: 36.384941, lng: 140.256529,    radius: 30,
+    info: "1594年に玉生氏は三所神社からの山裾に沿って幅八間半（約12m）の道を整備して石井の人たちを移して町人町を作りました。"
+  },
+  {
+    id: "twn_06",
+    name: "田町",
+    lat: 36.384990,  lng: 140.258472,    radius: 30,
+    info: "それまでの登城路が不便だったため1600年ごろに蒲生郷成は新しい登城路を作るために谷間の田を埋めて作った町だから田町という名前がついたそうです。陰影起伏図に切り替えて見てみると分かるよ！町口門から弁財天まで上級家臣の屋敷が並んでいました。侍の町なのに「町」なのが不思議です。"
+  },
+  {
+    id: "twn_07",
+    name: "行幸町",
+    lat: 36.380616, lng: 140.250369, radius: 30,
+    info: "行幸町の行幸は天皇が外へとお出かけになるということでその町に天皇がお出かけになさった場所だからこのような名前がついたそうです。"
+  },
+  {
+    id: "twn_08",
+    name: "四ツ谷",
+    lat: 36.382095, lng: 140.253300,    radius: 30,
+    info: ""
+  },
+  {
+    id: "twn_09",
+    name: "五騎町",
+    lat: 36.379237, lng: 140.253893,    radius: 30,
+    info: "江戸時代の最初に五騎の侍が住んでいたのでこのような名前になったというふうに伝わっているそうです。1817年に五騎町にあった秋元浚郊の家が時習館になりました。"
+  },
+  {
+    id: "twn_10",
+    name: "荒町",
+    lat: 36.385005,  lng: 140.252496,    radius: 30,
+    info: "1613年に藩主松平康長のころ、高橋新町ができて新町もできたため残った音の「あらまち」から「荒町」という風に名前がつけられました。"
+  },
+  {
+    id: "twn_11",
+    name: "弁天町",
+    lat: 36.375799, lng: 140.247457,    radius: 30,
+    info: ""
+  },
+  {
+    id: "twn_12",
+    name: "愛宕丁",
+    lat: 36, lng: 140,    radius: 30,
+    info: "笠間時朝が鎌倉時代笠間城築城時、笠間を守るために愛宕山勝軍寺を建てたその城下町の町人町として愛宕町ができたそうです。"
+  },
+  {
+    id: "twn_13",
+    name: "桂町",
+    lat: 36.382944, lng: 140.257528,    radius: 30,
+    info: "江戸時代ここは入山居という武家町があり、桂町の桂は笠間城の別名の桂城という桂から来ていて、明治時代にこの名前がついたそうです。"
+  },
+  {
+    id: "twn_14",
+    name: "桝形",
+ lat: 36.383290, lng: 140.256220,    radius: 30,
+    info: "桝形は地名ですが防御のための桝形がありました。その守りの方の桝形に講武館がくっついていて武道を学ぶ場所もありました。"
+  },
+  {
+    id: "twn_15",
+    name: "大和田",
+   lat: 36.381359, lng: 140.255227,    radius: 30,
+    info: "江戸時代のはじめに武家屋敷が道の両端に建てられ、1859年には大和田時習館が建てられ、町役場もあったそうです。"
+  },
+  {
+    id: "twn_16",
+    name: "稲荷町",
+  lat: 36.373499, lng: 140.246018,    radius: 30,
+    info: ""
+  },
+  {
+    id: "twn_17",
+    name: "鉄砲丁",
+    lat: 36.389509, lng: 140.253986,    radius: 30,
+    info: "鉄砲丁は「丁」がついていて鉄砲を持った武士が住んでいた町でここをくぐり抜けるのも大変だったでしょう。宇都宮口と一直線に並んでいるのでもしかしたら宇都宮にいる敵からの攻撃を守ろうという姿勢が感じられます。"
+  },
+  {
+    id: "twn_18",
+    name: "日向片町",
+    lat: 36.388811, lng: 140.252131,
+    radius: 30,
+    info: "片町は片側町で、道路の片側にだけ家が建ち並んでいて、日向片町は反対側に田んぼがあるので、住んでいる人おが田んぼで働いていたと思います。"
+  },
+  {
+    id: "twn_19",
+    name: "御旗前",
+   lat: 36.378280, lng: 140.252752,    radius: 30,
+    info: "江戸時代には御旗前や四軒家とも呼ばれていて、幕末になるとここに「十三山書楼」という塾を加藤桜老がたて、高杉晋作は２回もきているそうです。"
+  },
+  {
+    id: "twn_20",
+    name: "檜町",
+    lat: 36, lng: 140,    radius: 30,
+    info: ""
+  },
+  {
+    id: "twn_21",
+    name: "花香町",
+   lat: 36.376905, lng: 140.254154,    radius: 30,
+    info: ""
+  },
+  {
+    id: "twn_22",
+    name: "山居",
+    lat: 36.382200, lng: 140.259372,    radius: 30,
+    info: "山居は桝形から行けるところで、偉い家臣たちが住んでいたと思います。"
+  },
+  {
+    id: "twn_23",
+    name: "桜町",
+    lat: 36.379073, lng: 140.254680,    radius: 30,
+    info: "町の沿道に桜の並木があったので町名になったそうで、ここは浅野氏の頃から武家屋敷になりました。1823年から桜町時習館が30年もあった町です。小野友五郎や加藤桜老が通ったり吉田松陰が来たのは年代的にこの時習慣だと思います。"
+  }
+  //,{id: "twn24",name: "表町",lat: 36.375645, lng: 140.253815,    radius: 30,info: ""}  
+    
+];
+
+  // ====================================================
+  // 🦊 クエストデータ　🦊
+  // ====================================================
+  let currentQuest = null;
+  const quests = [
+
+    {
+      id: "quest01",
+      name: "井筒屋で小野友五郎を探そう！",
+      rewardKey: "key01",
+      info: "ここ井筒屋は江戸時代からある旅館だよ！今は笠間の歴史を知ることができる場所だよ！ここで<br/><div class='cl-point'>・<span class='m-h-l'>小野友五郎の顕彰碑</span></div>を見つけてね！",
+      // クエスト開始地点
+      startLat:  36.384688, 
+      startLng: 140.256419, 
+
+      // クエストクリア地点
+      clearPoints: [
+        {
+          name: "小野友五郎の顕彰碑",
+          lat: 36.384596, lng: 140.256542,
+          radius:100000,
+          required: true,
+          image: "q01-1.png",
+          info: "小野友五郎は笠間藩で生まれた人で、算術を学んだ結果、よくできたため幕府の命で本を翻訳してと頼まれそれは航海術の本で航海のしかたも学び、星の高度でどこにいるのかが分かるようになったので太平洋を横断したり小笠原を測量したりなど様々なことを成し遂げた人です。"
+        }
+        
+      ],
+      keyName: "方位磁石",
+      stampImage: "q01-key.png",
+      clearInfo: "小野友五郎が<span class='m-h-l'>「方位磁石」</span>をくれたよ！<br/>地図の左上に置いておくから使ってね！<br/>井筒屋で友五郎や笠間城について学べたかな？<br/>次のクエストにも挑戦してね！"
+    }
+
+   ,{
+      id: "quest02",
+      name: "大和田時習館を歩いてみよう！",
+      requiredKey: "key01",
+      rewardKey: "key02",
+      info: "ここ笠間小学校は江戸時代に<b>「時習館」という笠間藩の藩校</b>があった場所です。<br/>・<span class='m-h-l'>「時習館記」の石碑</span><br/>・<span class='m-h-l'>加藤桜老先生の銅像</span><br/>を見つけてね！",
+      // クエスト開始地点
+      startLat: 36.382111, 
+      startLng: 140.256400,
+      // クエストクリア地点
+
+      clearPoints: [
+        {
+          name: "「時習館記」の石碑",
+          lat: 36.382399,   lng:  140.256051,
+          radius: 7,
+          required: true,
+          image: "q02-1.png",
+          info: "「時習館」の由来は孔子の論語の「学ビテ<b>時</b>ニ之ヲ<b>習</b>フ、マタ説バシカラズヤ」→<span class='m-h-l'>「どんな状態にあっても学ぶことを続け、いつでもそのことを活用できるように常に復習して知識を身につけるということは喜ばしいことである」</span>です。"
+        }
+        ,{
+          name: "加藤桜老の銅像",
+          lat: 36.382452, lng: 140.255895,
+          radius: 7,
+          required: true,
+          image: "q02-2.png",
+          info: "加藤先生は18歳で時習館（桜町）の儒学の先生になったよ！高杉晋作が会いに来たすごい先生だよ！"
+        }
+        
+     ],
+      
+      //stampImage: "qst02_cl.png",
+      clearInfo: "大和田時習館は「桜町時習館」「博采館」「講武館」が統合されて1859年に作られた藩校だったんだよ！<br/>小野友五郎が学んだり加藤桜老先生が教えたり吉田松陰がきた桜町時習館など、他の時習館あとにもぜひ行ってみてね！"
+    }
+
+    
+  ];
+  
+  // 🦊 再読み込み時に挑戦中クエストを復元
+  const savedQuestId =
+    localStorage.getItem("current_quest_id");
+  
+  if (savedQuestId) {
+    currentQuest =
+      quests.find(q => q.id === savedQuestId) || null;
+  }
+
+  
+// ========================================================================================================
+// 🗺️　地図の登録　🗺️
+// ========================================================================================================
+
+// === 地図表示 ===
+// 航空写真が表示される「16」
+const map = L.map("map", { zoomControl: false }).setView([36.385662,140.254050], 16);
+  
+// 1. 通常地図（OpenStreetMap）レイヤー
+const baseMap = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: "© OpenStreetMap",
+  maxZoom: 19
+});
+
+// 2. 航空写真（国土地理院）レイヤー
+const satelliteMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{z}/{x}/{y}.jpg", {
+  attribution: "© 国土地理院",
+  minZoom: 2,
+  maxZoom: 19,
+  maxNativeZoom: 18 // これ以上ズームアウト・ズームインしても画像が消えないように保護
+});
+ 
+// 3. 陰影起伏図（国土地理院）レイヤー
+const elevationMap = L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/hillshademap/{z}/{x}/{y}.png",{
+    attribution: "© 国土地理院",
+    minZoom: 2,
+    maxZoom: 19,
+    maxNativeZoom: 16
+});  
+  
+// 4. クエストマップ レイヤー
+const originalMapGroup = L.layerGroup();
+// 【1枚目：joka.png】のカバーする範囲
+const boundsMeiji = [
+  [36.374537, 140.246776], // 左下
+  [36.396091, 140.278200]  // 右上
+];
+L.imageOverlay("cqm_machi.webp", boundsMeiji, {
+  opacity: 1.0,     
+  alt: "joka"
+}).addTo(originalMapGroup);
+
+//"meijiline.png" [36.376273, 140.246029], [36.396837, 140.278823] 
+
+// 【2枚目：shiro.png】のカバーする範囲
+const boundsShiro = [
+  [36.379167, 140.260343], // 左下
+  [36.386874, 140.271266]  // 右上
+];
+L.imageOverlay("cqm_shiro.webp", boundsShiro, {
+  opacity: 1.0,     
+  alt: "shiro"
+}).addTo(originalMapGroup);
+
+// 最初は「クエストマップ」を画面に表示しておく
+originalMapGroup.addTo(map);
+
+
+// ========================================================================================================
+// ◽️ ボタン：
+// ========================================================================================================
+function setupControlToggle(container) {
+  // 最初からexpandedが付いている（左下）場合はcollapsedをつけない
+  if (!container.classList.contains('expanded')) {
+    container.classList.add('custom-map-control', 'collapsed');
+  } else {
+    container.classList.add('custom-map-control');
+  }
+  // すべての自作四角パネルを一度「閉じる」共通の命令
+  const closeAllPanels = () => {
+    const allPanels = document.querySelectorAll('.custom-map-control');
+    allPanels.forEach(p => {
+      p.classList.remove('expanded');
+      p.classList.add('collapsed');
+    });
+  };
+  // アイコンをタップ、またはマウスが乗ったら「開く」
+  const expand = () => {
+    // 自分が開く前に、まずは他のすべてのパネルを綺麗に閉じさせる
+    closeAllPanels();
+    container.classList.remove('collapsed');
+    container.classList.add('expanded');
+  };
+  container.addEventListener('mouseenter', expand);
+  container.addEventListener('touchstart', expand, { passive: true });
+  // マウスが完全に離れたら折りたたむ（最小化）
+  container.addEventListener('mouseleave', () => {
+    container.classList.remove('expanded');
+    container.classList.add('collapsed');
+  });
+  // ラジオボタンをクリックした時は、タッチのズレを防ぐため「0.3秒待ってから」閉じる
+  container.addEventListener('change', () => {
+    setTimeout(() => {
+      container.classList.remove('expanded');
+      container.classList.add('collapsed');
+    }, 300);
+  });
+  // 地図画面をタップしたら折りたたむ
+  map.on('click', () => {
+    container.classList.remove('expanded');
+    container.classList.add('collapsed');
+  });
+  // パネル内を触ったときに後ろの地図が勝手に動くのを防ぐ
+  L.DomEvent.disableClickPropagation(container);
+}
+
+  
+// ========================================================================================================
+// ◽️ ボタン：地図 切り替え 🗺️
+// ========================================================================================================
+const CustomLayersControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function () {
+    const container = L.DomUtil.create('div');
+    container.innerHTML = `
+      <div class="control-icon control-icon-toggle">
+        <img src="icon_map.png" alt="地図" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+      </div>
+      <div class="control-content">
+        <h4>地図の切り替え</h4>
+        <label><input type="radio" name="layer_opt" checked onclick="handleLayerRadio('original')">クエストマップ</label>
+        <label><input type="radio" name="layer_opt" onclick="handleLayerRadio('base')">現代の地図</label>
+        <label><input type="radio" name="layer_opt" onclick="handleLayerRadio('satellite')">航空写真</label>
+        <label><input type="radio" name="layer_opt" onclick="handleLayerRadio('elevation')">陰影起伏図</label>
+      </div>
+    `;
+    setupControlToggle(container);
+    return container;
+  }
+});
+map.addControl(new CustomLayersControl());
+  
+// 地図切り替えの実際の処理
+function handleLayerRadio(type) {
+  map.removeLayer(originalMapGroup);
+  map.removeLayer(baseMap);
+  map.removeLayer(satelliteMap);
+  map.removeLayer(elevationMap);
+
+  if (type === 'original') {
+    originalMapGroup.addTo(map);
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>クエストマップ</span>に切り替えたよ！<br/>クエストマップは江戸時代の文政の頃の道を現代で歩けるようにしたマップのことだよ！`);
+    }
+  }
+  if (type === 'base') {
+    baseMap.addTo(map);
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>現代の地図</span>に切り替えたよ！<br/>現代のどのあたりか確認してみてね！`);
+    }
+  }
+  if (type === 'satellite') {
+    satelliteMap.addTo(map);
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>航空写真</span>に切り替えたよ！<br/>家や地面の様子が写真で見れるからどこなのか場所が見当をつけやすくなるよ！`);
+    }
+  }
+  if (type === 'elevation') {
+    elevationMap.addTo(map); 
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>陰影起伏図</span>に切り替えたよ！<br/>北西から光を当てた時にどう見えるか想定した地図で、堀や土塁などの凸凹を見つけることのできる地図だよ！`);
+    }
+  }
+}
+
+// ========================================================================================================
+// ◽️ ボタン：目印 切り替え 📌
+// ========================================================================================================
+let currentDisplayGroup = "all";
+  
+const CustomFilterControl = L.Control.extend({
+  options: { position: 'topright' }, 
+  onAdd: function () {
+    const container = L.DomUtil.create('div');
+    container.innerHTML = `
+      <div class="control-icon control-icon-toggle">
+        <img src="pin_brown.png" alt="目印" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+      </div>
+      <div class="control-content">
+        <h4>目印の切り替え</h4>
+        <label><input type="radio" name="filter_opt" checked onclick="handleFilterRadio('all')">全て表示</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('bld')">建造物</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('dfc')">防御施設</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('twn')">町名標示</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('now')">現存</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('rcm')">言い伝え</label>
+        <label><input type="radio" name="filter_opt" onclick="handleFilterRadio('quest')">クエスト🦊</label>
+      </div>
+    `;
+    setupControlToggle(container);
+    return container;
+  }
+});
+map.addControl(new CustomFilterControl());
+
+
+// =====================================================================================================
+//ラジオボタンが押されたときに、表示を切り替える処理
+function handleFilterRadio(groupType) {
+  currentDisplayGroup = groupType; // 選ばれたグループ（all, dfc, twnなど）を記憶
+
+  const foxMsg = document.getElementById("fox-message");
+  if(groupType=="all"){
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>全ての目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="bld"){
+    if (foxMsg) {
+      typeFoxMessage(`神社・寺・櫓・学校など<span class='m-h-l'>建造物の目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="dfc"){
+    if (foxMsg) {
+      typeFoxMessage(`門や虎口や曲輪や堀などの<span class='m-h-l'>防御施設の目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="twn"){
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>町名標示の目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="now"){
+    if (foxMsg) {
+      typeFoxMessage(`昔と場所は違うけど<span class='m-h-l'>現存しているものの目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="rcm"){
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>言い伝えのある場所の目印</span>を表示しているよ！`);
+    }
+  }else if(groupType=="quest"){
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>クエストの目印</span>だけを表示しているよ！`);
+    }
+  }
+  updateMapMarkers(); 
+}
+
+// ========================================================================================================
+// ◽️ ボタン：足跡 切り替え🐾
+// ========================================================================================================
+const CustomTrackControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function () {
+    const container = L.DomUtil.create('div', 'custom-map-control');
+    container.innerHTML = `
+      <div class="control-icon control-icon-toggle" id="track-icon-status">
+        <img src="icon_track.png" alt="足跡" style="width: 100%; height: 100%; object-fit: contain; display: block;">
+      </div>
+      <div class="control-content">
+        <h4>足跡の記録</h4>
+        <label><input type="radio" name="track_opt" id="opt_start" onclick="handleTrackRadio('start')">足跡つけはじめる</label>
+        <label><input type="radio" name="track_opt" id="opt_pause" onclick="handleTrackRadio('pause')">足跡ひとやすみ</label>
+        <label><input type="radio" name="track_opt" id="opt_stop" checked onclick="handleTrackRadio('stop')">足跡をリセット</label>
+      </div>
+    `;
+    setupControlToggle(container);
+    return container;
+  }
+});
+map.addControl(new CustomTrackControl());
+
+  
+// ========================================================================================================
+// ◽️ ボタン：クエスト 切り替え🦊
+// ========================================================================================================
+function updateQuestMenu() {
+  const content = document.getElementById('quest-list');
+
+  if (!content) return;
+  let questListHTML = '';
+
+  quests.forEach(q => {
+    const isActive =
+      currentQuest && currentQuest.id === q.id;
+    const isLocked =
+      q.requiredKey &&
+      !localStorage.getItem("key_" + q.requiredKey);
+    const foundCount =
+      q.clearPoints.filter((point, index) =>
+        localStorage.getItem(
+          "quest_point_found_" + q.id + "_" + index
+        )
+      ).length;
+    const questClearTime =
+      localStorage.getItem(
+        "quest_clear_time_" + q.id
+      );
+    let questName = q.name;
+    
+    if (questClearTime) {
+      questName = `<s>${questName}</s>`;
+    }
+    if (isLocked) {
+      questName = `<span class="quest-locked">🔒 ${questName}</span>`;
+    }
+    
+    const clearMarks =
+      foundCount > 0
+        ? "🔑".repeat(foundCount)
+        : "";
+    if (isActive) {
+      questName = `<strong>${questName}</strong>`;
+    }
+    questListHTML += `
+      <label>
+        <input
+          type="radio"
+          name="quest_opt"
+          onclick="handleQuestRadio('${q.id}')"
+          ${isActive ? "checked" : ""}
+        >
+        ${questName}${clearMarks}
+      </label>
+    `;
+  });
+
+  questListHTML += `
+    <label>
+      <input
+        type="radio"
+        name="quest_opt"
+        onclick="resetQuestData()"
+      >
+      クエストをリセット
+    </label>
+  `;
+  content.innerHTML = questListHTML;
+}
+  
+const CustomQuestControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function () {
+    const container = L.DomUtil.create('div');
+    // クエスト一覧を自動生成
+    
+    let questListHTML = ``;
+    quests.forEach(q => {
+
+    // 現在挑戦中か
+    const isActive =
+      currentQuest && currentQuest.id === q.id;   
+    const isLocked =
+      q.requiredKey &&
+      !localStorage.getItem("key_" + q.requiredKey);
+    // クリアしたポイント数
+    const foundCount =
+      q.clearPoints.filter((point, index) =>
+        localStorage.getItem(
+          "quest_point_found_" + q.id + "_" + index
+        )
+      ).length;
+    // クエスト全体をクリア済みか
+    const questClearTime =
+      localStorage.getItem(
+        "quest_clear_time_" + q.id
+      );
+    // クエスト名の表示
+    let questName = q.name; 
+    if (questClearTime) {
+      questName = `<s>${questName}</s>`;
+    }  
+    if (isLocked) {
+      questName = `<span class="quest-locked">🔒 ${questName}</span>`;
+    }    
+    // クリアしたポイント数だけ🔑
+    const clearMarks =
+      foundCount > 0
+        ? "🔑".repeat(foundCount) + " "
+        : "";
+    // 挑戦中なら太字
+    if (isActive) {
+      questName = `<strong>${questName}</strong>`;
+    }
+    questListHTML += `
+      <label>
+        <input
+          type="radio"
+          name="quest_opt"
+          onclick="handleQuestRadio('${q.id}')"
+        >
+        ${questName}${clearMarks}
+    </label>
+    `;  
+  });
+    
+    
+  // 🗑️ クエストのクリア記録をリセット
+  questListHTML += `
+    <label>
+      <input type="radio" name="quest_opt" onclick="resetQuestData()">
+      クエストをリセット
+    </label>
+  `;
+  container.innerHTML = `
+    <div class="control-icon control-icon-toggle">
+      <img id="quest-menu-icon" src="quest_menu.png" alt="クエスト" style="width:100%;height:100%;object-fit:contain;display:block;">
+    </div>
+
+    <div class="control-content">
+      <h4>🦊 クエスト</h4>
+      <div id="quest-list">
+        ${questListHTML}
+      </div>
+    </div>
+  `;
+  setupControlToggle(container);
+  return container;
+  }
+});
+map.addControl(new CustomQuestControl());
+updateQuestMenuIcon();
+
+// =====================================================================================================
+// 🦊 クエストメニューのアイコンを切り替える====================================================
+function updateQuestMenuIcon() {
+  const icon = document.getElementById("quest-menu-icon");
+  if (!icon) return;
+
+  const control = icon.closest(".custom-map-control");
+
+  if (currentQuest) {
+    icon.src = "quest_active.png";
+    if (control) {
+      control.classList.add("quest-active");
+    }
+  } else {
+    icon.src = "quest_menu.png";
+    if (control) {
+      control.classList.remove("quest-active");
+    }
+  }
+}  
+// =====================================================================================================
+// 🦊 クエスト選択時の処理========================================================================================================
+function handleQuestRadio(id) {
+  // 今クリックする前に、現在挑戦中のラジオを覚えておく
+  const activeQuestId = currentQuest ? currentQuest.id : null;
+  // クエストを探す
+  const q = quests.find(quest => quest.id === id);
+  if (!q) return;
+  // 必要なクエストキーを持っているか確認
+  if (
+    q.requiredKey &&
+    !localStorage.getItem("key_" + q.requiredKey)
+  ) {
+    //alert("🔒 このクエストはまだ解放されていないよ！");
+    updateQuestMenu();
+    return;
+  }
+  
+  // クエストを「開始」せず、スタート地点へ移動するだけ
+  map.setView(
+    [q.startLat, q.startLng],
+    17
+  );
+  // クエストのピンを開く
+  if (questMarkers[q.id]) {
+    questMarkers[q.id].openPopup();
+  }
+  // 挑戦中のクエストがあれば、そのラジオをONに戻す
+  if (activeQuestId) {
+    const activeRadio = document.querySelector(
+      `input[name="quest_opt"][onclick="handleQuestRadio('${activeQuestId}')"]`
+    );
+    if (activeRadio) {
+      activeRadio.checked = true;
+    }
+  } else {
+    // まだクエストに挑戦していないなら、
+    // 今クリックしたラジオもOFFに戻す
+    const clickedRadio = document.querySelector(
+      `input[name="quest_opt"][onclick="handleQuestRadio('${id}')"]`
+    );
+    if (clickedRadio) {
+      clickedRadio.checked = false;
+    }
+  }
+  // クエストパネルを閉じる
+  const panels = document.querySelectorAll('.custom-map-control');
+  panels.forEach(panel => {
+    panel.classList.remove('expanded');
+    panel.classList.add('collapsed');
+  });
+}
+
+  
+// =====================================================================================================
+// 🦊 クエストのクリア記録だけリセット========================================================================================================
+function resetQuestData() {
+  const ok = confirm(
+    "🦊 これまでにクリアしたクエストの記録をすべて消去しますか？"
+  );
+  // キャンセルなら何もしない
+  if (!ok) {
+    return;
+  }
+  // ① クエストのクリア記録だけ削除
+  quests.forEach(q => {
+    localStorage.removeItem(
+      "quest_clear_time_" + q.id
+    );
+  });
+  // 🔑 クエスト報酬の鍵もリセット
+  quests.forEach(q => {
+    if (q.rewardKey) {
+      localStorage.removeItem(
+        "key_" + q.rewardKey
+      );
+    }
+  });
+  // ①-2 各クリアポイントの発見記録も削除
+  quests.forEach(q => {
+    q.clearPoints.forEach((point, index) => {
+      localStorage.removeItem(
+        "quest_point_found_" + q.id + "_" + index
+      );
+    });
+  });
+
+  currentQuest = null;
+  localStorage.removeItem("current_quest_id");
+  updateQuestMenuIcon();
+  updateQuestMenu();
+  // ②-2 表示中のクリア地点ピンをすべて削除
+  Object.keys(questClearMarkers).forEach(key => {
+    map.removeLayer(questClearMarkers[key]);
+    delete questClearMarkers[key];
+  });
+  // ③ クエストピンを通常状態に戻す
+  quests.forEach(q => {
+    updateQuestPinImage(q);
+  });
+  // クエストの吹き出しも最新状態に更新
+  updateQuestMarkers();
+  if (currentQuest) {
+    updateQuestPinImage(currentQuest);
+    updateQuestPopup(currentQuest);
+  }
+  // ④ スタンプ帳を更新
+  showStamps();
+
+  const foxMsg = document.getElementById("fox-message");
+  if (foxMsg) {
+    typeFoxMessage(`クエストの記録をリセットしたよ！また冒険に出かけよう！`);
+  }
+  alert("🦊 クエストのクリア記録をリセットしました！");
+}
+
+// === 現在地 🧭 ＆ 📕 スタンプ帳 横並びパネル ================================================
+const CustomBottomLeftControl = L.Control.extend({
+  options: { position: 'bottomleft' },
+  onAdd: function () {
+    const mainWrapper = L.DomUtil.create('div');
+    mainWrapper.style.display = 'flex';
+    mainWrapper.style.gap = '10px';
+    mainWrapper.style.alignItems = 'flex-start';
+
+    // ========================================================================================================
+    // ◽️ ボタン：現在地 🧭
+    // ========================================================================================================
+    const locContainer = L.DomUtil.create('div', '', mainWrapper);
+
+    locContainer.innerHTML = `
+      <div style="display: flex; align-items: center;">
+        <div class="control-icon">
+          <img src="icon_location.png"
+               alt="現在地"
+               style="width:100%; height:100%; object-fit:contain; display:block;">
+        </div>
+
+        <div class="control-content" style="margin-left:5px;">
+          <h4
+            style="
+              margin:0;
+              padding:0;
+              border:none;
+              cursor:pointer;
+              white-space:nowrap;
+              display:flex;
+              align-items:center;
+              height:28px;
+            "
+            onclick="checkLocation()">
+            現在地をチェック
+          </h4>
+        </div>
+      </div>
+    `;
+    // 現在地は今まで通り最初から開いている
+    locContainer.classList.add('expanded');
+    setupControlToggle(locContainer);
+    locContainer.classList.remove('collapsed');
+
+    // ========================================================================================================
+    // ◽️ ボタン：スタンプ 📕
+    // ========================================================================================================
+    const bookContainer = L.DomUtil.create('div', '', mainWrapper);
+
+    bookContainer.innerHTML = `
+      <div style="display: flex; align-items: center;">
+
+        <!-- スタンプ帳アイコン -->
+        <div class="control-icon control-icon-toggle">
+          <img
+            src="icon_book.png"
+            alt="スタンプ帳"
+            style="width:100%; height:100%; object-fit:contain; display:block;">
+        </div>
+
+        <!-- スタンプ帳メニュー -->
+        <div class="control-content" style="margin-left:5px;">
+          <h4 style="
+            margin:0 0 8px 0;
+            padding:0;
+            border:none;
+            white-space:nowrap;
+          ">
+            御集印帳
+          </h4>
+
+          <label>
+            <input
+              type="radio"
+              name="stampbook_opt"
+              onclick="handleStampBookRadio('got')">
+            集めた印
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="stampbook_opt"
+              onclick="handleStampBookRadio('all')">
+            すべての印
+          </label>
+
+          <label>
+            <input
+              type="radio"
+              name="stampbook_opt"
+              onclick="handleStampBookRadio('reset')">
+            御集印帳をリセット
+          </label>
+
+        </div>
+      </div>
+    `;
+    setupControlToggle(bookContainer);
+
+    return mainWrapper;
+  }
+});
+
+map.addControl(new CustomBottomLeftControl());
+
+// ========================================================================================================
+// 📖 スタンプ帳メニューの処理
+function handleStampBookRadio(type) {
+  // --------------------------------
+  // 獲得したスタンプだけ表示
+  // --------------------------------
+  if (type === 'got') {
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      //foxMsg.innerHTML ="🦊 <span class='m-h-l'>ゲットした印</span>を見られるよ！⚠️";
+      typeFoxMessage(`今までに<span class='m-h-l'>ゲットした印</span>を見られるよ！<br/>印をタップするとマップのどこにあるか見られるよ！`);
+    }
+    showStamps('got');
+    // スタンプ帳までスクロール
+    scrollToStampBook();
+  }
+  // --------------------------------
+  // 全てのスタンプを表示
+  // --------------------------------
+  else if (type === 'all') {
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      //foxMsg.innerHTML = "🦊 <span class='m-h-l'>全ての印</span>を見られるよ！⚠️";
+      typeFoxMessage(` <span class='m-h-l'>すべての印</span>を見られるよ！<br/>印をタップするとマップのどこにあるか見られるよ！`);
+    }
+    showStamps('all');
+
+    // スタンプ帳までスクロール
+    scrollToStampBook();
+  }
+  // --------------------------------
+  // スタンプ帳リセット
+  // --------------------------------
+  else if (type === 'reset') {
+    const answer = confirm(
+      "🦊 本当にいいの？\n\n" +
+      "これまでに集めた印が" +
+      "ぜんぶ消えてしまうよ。\n\n" +
+      "本当にリセットする？"
+    );
+
+    if (answer) {
+      // スタンプだけ削除
+      spots.forEach(s => {
+        localStorage.removeItem("stamp_" + s.id);
+        localStorage.removeItem("stamp_time_" + s.id);
+      });
+      // 地図のピンを更新
+      updateMapMarkers();
+      // スタンプ帳を「全て」に戻す
+      showStamps('all');
+      // フォックスメッセージ
+      const foxMsg = document.getElementById('fox-message');
+
+      if (foxMsg) {
+        //foxMsg.innerHTML = "🦊 御集印帳をまっさらにしたよ！また集めに行こう！";
+        typeFoxMessage(`御集印帳をまっさらにしたよ！また集めに行こう！`);
+      }
+      alert("🦊 御集印帳をリセットしました。");
+      
+      // リセット後もスタンプ帳へ
+      scrollToStampBook();
+    } else {
+      const foxMsg = document.getElementById('fox-message');
+      if (foxMsg) {
+        //foxMsg.innerHTML ="🦊 スタンプはちゃんと残っているよ！";
+        typeFoxMessage(`スタンプはちゃんと残っているよ！`);
+      }
+    }
+  }
+  // --------------------------------
+  // パネルを閉じる
+  // --------------------------------
+  const panels = document.querySelectorAll('.custom-map-control');
+
+  panels.forEach(panel => {
+    panel.classList.remove('expanded');
+    panel.classList.add('collapsed');
+  });
+}
+
+// ========================================================================================================
+// 📖 スタンプ帳まで自動スクロール
+function scrollToStampBook() {
+  const stampBook = document.getElementById("stamps");
+  if (!stampBook) return;
+  // 少し待ってからスクロール
+  // → showStamps() で内容を書き換えたあとに確実に移動するため
+  setTimeout(() => {
+    stampBook.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 100);
+}
+  
+// ====================================================
+// 🐾 足跡の処理
+// ====================================================
+let myNewWatchId = null;
+let myNewTrackDots = [];
+let myNewLastDotTime = 0;
+
+function handleTrackRadio(mode) {
+  const iconStatus = document.getElementById('track-icon-status');
+  const trackControl = iconStatus
+    ? iconStatus.closest('.custom-map-control')
+    : null;
+  const foxMsg = document.getElementById('fox-message');
+  const getFoxMsgEl = () => document.getElementById('fox-message');
+
+  if (mode === 'start') {
+    startNewTracking(); 
+    if (iconStatus) {
+      iconStatus.innerHTML = `<img src="icon_track_start.png" alt="足跡(記録中)" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+    }   
+    if (trackControl) {
+      trackControl.classList.add('track-active');
+    }
+    if (foxMsg) {    
+      typeFoxMessage(`歩いたら<span class='m-h-l'>地図にてんてんの足跡</span>がつくよ！笠間城や城下町を探検してみよう！`);
+    }
+    alert("🦊 足跡が記録されはじめました。");
+  }
+  else if (mode === 'pause') {
+    pauseNewTracking();
+    if (iconStatus) {
+      iconStatus.innerHTML = `<img src="icon_track.png" alt="足跡(ひとやすみ)" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+    }
+    if (trackControl) {
+      trackControl.classList.remove('track-active');
+    }
+    if (foxMsg) {
+      typeFoxMessage(`<span class='m-h-l'>ひとやすみ中は足跡がつかないよ。</span>また足跡をつけたくなったら、足跡をつけるのを忘れないでね！`);
+    }
+    alert("🦊 足跡をつけるのをひとやすみします。");
+  } 
+  else if (mode === 'stop') {
+    if (myNewTrackDots.length > 0) {
+      if (confirm("🦊 これまでに記録した歩いたてんてんの足跡をすべて消去しますか？")) {
+        myNewTrackDots.forEach(dot => map.removeLayer(dot));
+        myNewTrackDots = [];
+        myNewLastDotTime = 0;
+        localStorage.removeItem("saved_breadcrumbs");
+        if (myNewWatchId !== null) {
+          navigator.geolocation.clearWatch(myNewWatchId);
+          myNewWatchId = null;
+        }
+        if (iconStatus) {
+          iconStatus.innerHTML = `<img src="icon_track.png" alt="足跡" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+        }
+        if (trackControl) {
+          trackControl.classList.remove('track-active');
+        }
+        if (foxMsg) {
+          typeFoxMessage(`<span class='m-h-l'>今までの足跡を消したよ！</span>もう一回探検してみてね！`);
+        }
+        alert("🦊 足跡をリセットしました。");
+      } else {
+        // キャンセルされたらボタンのチェックを戻す
+        if (myNewWatchId !== null) {
+          document.getElementById('opt_start').checked = true;
+          if (iconStatus) {
+            iconStatus.innerHTML = `<img src="icon_track_start.png" alt="足跡(記録中)" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+          }
+            if (trackControl) {
+              trackControl.classList.add('track-active');
+            }
+        } else {
+          document.getElementById('opt_pause').checked = true;
+          if (iconStatus) {
+            iconStatus.innerHTML = `<img src="icon_track.png" alt="足跡(ひとやすみ)" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+          }
+            if (trackControl) {
+              trackControl.classList.remove('track-active');
+            }
+        }
+      }
+    } else {
+      if (myNewWatchId !== null) {
+        navigator.geolocation.clearWatch(myNewWatchId);
+        myNewWatchId = null;
+      }
+      // 最初からデータが無い時
+      if (iconStatus) {
+        iconStatus.innerHTML = `<img src="icon_track.png" alt="足跡" style="width: 100%; height: 100%; object-fit: cover; display: block;">`;
+      }
+      if (foxMsg) {
+        typeFoxMessage(`足跡の記録はまだないよ！「🐾」からつけられるよ！`);
+      }
+    }
+  }
+}
+  
+// 足跡スタート（30秒おき）
+function startNewTracking() {
+  if (!navigator.geolocation) {
+    alert("お使いのブラウザは位置情報の追跡に対応していません");
+    document.getElementById('opt_stop').checked = true; 
+    document.getElementById('track-icon-status').innerText = "🐾";
+    return;
+  }
+  if (myNewWatchId !== null) return; 
+  let firstLocation = true;
+  myNewWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      const uLat = pos.coords.latitude;
+      const uLng = pos.coords.longitude;
+      currentLat = uLat;
+      currentLng = uLng;
+      
+      // ====================================================
+      // 🦊 クエストのクリア地点チェック
+      // ====================================================
+      if (firstLocation) {
+        map.setView([uLat, uLng], 16);
+        firstLocation = false;
+      }  
+      // 現在地マーク（青丸）を自動移動
+      if (currentLocationMarker) {
+        currentLocationMarker.setLatLng([uLat, uLng]);
+      } else {
+        currentLocationMarker = L.circleMarker([uLat, uLng], {
+          radius: 8, color: "blue", fillColor: "blue", fillOpacity: 0.8
+        }).addTo(map);
+      }
+
+      // 【30秒おきのドット記録システム】（ドットを打つと同時に、ブラウザに保存します）
+      const now = Date.now();
+      if (myNewLastDotTime === 0 || (now - myNewLastDotTime) >= 30000) {
+        // 色：茶色（#a07855）、2.6px
+        const dot = L.circleMarker([uLat, uLng], {
+          radius: 2.6,        
+          color: "#a07855",   
+          fillColor: "#a07855",
+          fillOpacity: 0.6,
+          stroke: false       
+        }).addTo(map);
+        myNewTrackDots.push(dot); 
+        myNewLastDotTime = now;
+
+        // 足跡データをLocalStorageにテキストとして保存
+        const rawCoords = myNewTrackDots.map(d => {
+          const ll = d.getLatLng();
+          return [ll.lat, ll.lng];
+        });
+        localStorage.setItem("saved_breadcrumbs", JSON.stringify(rawCoords));
+      }
+    },
+    (err) => {
+      console.error("位置の追跡に失敗しました:", err.message);
+      alert("⚠️ GPS信号が弱いため記録を開始できません。");
+      if (myNewWatchId !== null) {
+        navigator.geolocation.clearWatch(myNewWatchId);
+        myNewWatchId = null;
+      }
+      document.getElementById('opt_stop').checked = true;
+      document.getElementById('track-icon-status').innerText = "🐾";
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+// 足跡ひとやすみ 
+function pauseNewTracking() {
+  if (myNewWatchId === null) return;
+  navigator.geolocation.clearWatch(myNewWatchId);
+  myNewWatchId = null;
+}  
+
+// ====================================================
+// 📖 目印の処理
+// ====================================================
+ 
+function updateMapMarkers() {
+  spots.forEach(s => {
+    const got = localStorage.getItem("stamp_" + s.id);      // 獲得済
+    const wish = localStorage.getItem("wish_" + s.id);      // 行きたい
+
+    // ====================================================
+    //選択されたグループに、このピンが該当するか判定
+    // ====================================================
+    let isMatched = false;
+
+    if (currentDisplayGroup === "all") {
+      // 「全て表示」なら全部表示
+      isMatched = true;  
+    } else if (currentDisplayGroup === "quest") {
+      // 「クエストのみ」なら通常の目印は全部非表示
+      isMatched = false;
+    } else {
+      // 「dfc」「twn」「now」「rcm」「bld」など、
+      // IDの先頭が選択グループと一致するか確認
+      isMatched = s.id && s.id.startsWith(currentDisplayGroup);
+    }
+
+    // ====================================================
+    // 選ばれたグループ以外のピンを地図から一時的に隠す
+    // ====================================================
+    if (!isMatched) {
+      if (markers[s.id]) {
+        map.removeLayer(markers[s.id]);
+      }
+      return;
+    }
+
+    // ====================================================
+    // 選択されたグループのピンを地図に戻す
+    // ====================================================
+    if (markers[s.id] && !map.hasLayer(markers[s.id])) {
+      markers[s.id].addTo(map);
+    }
+
+    // ====================================================
+    // 手書き画像グループの画像ファイル名決定
+    // ====================================================
+    let myIconUrl = "pin_blue.png";
+
+    if (s.id && s.id.startsWith("okn")) {  //rcm
+      myIconUrl = "str_blue.png";
+      if (got) {
+        myIconUrl = "str_red.png";
+      } else if (wish) {
+        myIconUrl = "str_yellow.png";
+      }
+    }  else if (s.id && s.id.startsWith("dfc")) {    //def
+        //  dfc用の3色のバツ画像をここに指定
+        myIconUrl = got ? "pin_dfc_red.png" : (wish ? "pin_dfc_yellow.png" : "pin_dfc_blue.png");
+    }  else if (s.id && s.id.startsWith("now")) {    //now
+        //  now用の3色のバツ画像をここに指定
+        myIconUrl = got ? "pin_now_red.png" : (wish ? "pin_now_yellow.png" : "pin_now_blue.png");
+    }  else if (s.id && s.id.startsWith("rcm")) {    //rcm
+        //  rcm用の3色のバツ画像をここに指定
+        myIconUrl = got ? "pin_rcm_red.png" : (wish ? "pin_rcm_yellow.png" : "pin_rcm_blue.png");
+    }  else {                                
+      if (got) {
+        myIconUrl = "pin_red.png";
+      } else if (wish) {
+        myIconUrl = "pin_yellow.png";
+      }
+    }
+
+    const myHandmadeIcon = L.icon({
+      iconUrl: myIconUrl,
+      iconSize: L.point(40, 40),
+      iconAnchor: L.point(20, 40),
+      popupAnchor: L.point(0, -42)
+    });
+
+    // ====================================================
+    // 吹き出し（ポップアップ）の中身を作成
+    // ====================================================
+    let stampImageUrl = "stmpof.png";
+
+    if (got) {
+      stampImageUrl = s.imgOn ? s.imgOn : "stmpon.png";
+    } else {
+      stampImageUrl = s.imgOf ? s.imgOf : "stmpof.png";
+    }
+
+    let popupContent =
+      `<div style="text-align: center; font-family: sans-serif; min-width: 140px;">`;
+    if (got) {
+      // ------------------------------
+      // 獲得済み
+      // ------------------------------
+      const savedTime =
+        localStorage.getItem("stamp_time_" + s.id) || "日時データなし";
+      
+      popupContent += `
+        <img
+          src="${stampImageUrl}"
+          alt="スタンプ"
+          style="width: 75px; height: 75px; object-fit: contain; margin-bottom: 3px;"
+        >
+        <br>
+        <b style="font-size: 14px;">${s.name}</b>
+
+        <span
+          style="
+            font-size: 12px;
+            color: #666;
+            display: block;
+            text-align: left;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+          "
+        >${s.info}</span>
+
+        <div
+          style="
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 25px;
+          "
+        >
+          <span
+            style="
+              font-size: 11px;
+              color: #7f756b;
+              font-weight: normal;
+              background: none;
+              border: none;
+              padding: 0;
+            "
+          >
+            ${savedTime}
+          </span>
+        </div>`;
+
+    } else {
+      // ------------------------------
+      // 未獲得
+      // ------------------------------
+      const wishButtonText = wish
+        ? "📍外す"
+        : "📍行ってみたい";
+
+      const wishButtonColor = wish
+        ? "#fff0f0"
+        : "#fffde6";
+
+      popupContent += `
+        <img
+          src="${stampImageUrl}"
+          alt="スタンプ"
+          onclick="tryGetStamp('${s.id}')"
+          style="
+            width: 75px;
+            height: 75px;
+            object-fit: contain;
+            margin-bottom: 3px;
+            cursor: pointer;
+          "
+          title="タッチしてスタンプを押す"
+        >
+        <br>
+        <b style="font-size: 14px;">${s.name}</b>
+
+        <span
+          style="
+            font-size: 12px;
+            color: #666;
+            display: block;
+            text-align: left;
+            margin-top: 6px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+          "
+        >${s.info}</span>
+
+        <div
+          style="
+            margin-top: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 25px;
+          "
+        >
+          <button
+            onclick="toggleWish('${s.id}')"
+            style="
+              font-size: 11px;
+              padding: 4px 10px;
+              cursor: pointer;
+              background-color: ${wishButtonColor};
+              border: 1px solid #ccc;
+              border-radius: 4px;
+            "
+          >
+            ${wishButtonText}
+          </button>
+        </div>`;
+    }
+    popupContent += `</div>`;
+
+    // ====================================================
+    // ドット表示グループ
+    // ====================================================
+    const isTwn = s.id && s.id.startsWith("twn");
+    const isMrk = s.id && s.id.startsWith("mrk");
+    //const isNow = s.id && s.id.startsWith("now");
+    //const isRcm = s.id && s.id.startsWith("rcm");
+    //if (isTwn || isNow || isRcm) {
+    //if (isTwn || isNow || isRcm) {
+    if (isTwn || isMrk) {
+
+      // ------------------------------
+      // 基本となる線の色
+      // ------------------------------
+      let dotColor = "#7f756b"; //#3c6382
+      //if (isNow|| isRcm) {
+      if (isMrk) {
+        dotColor = "#0a3d62";   //#33302e
+      }
+      // 行きたい・スタンプ獲得による色変更
+      if (got) {
+        dotColor = "#b71540";
+      } else if (wish) {
+        dotColor = "#c89932";
+      }
+      // ------------------------------
+      // 透過率と枠線
+      // ------------------------------
+      let fillOpt = 0.7;
+      let strokeOpt = false;
+      let borderWeight = 3;
+      let strokeOpacityOpt = 1.0;
+      //if (isNow|| isRcm) {
+      if (isMrk) {
+        fillOpt = 0.0;
+        strokeOpt = true;
+        strokeOpacityOpt = 0.6;
+        borderWeight = 4;
+      }
+      const dotOptions = {
+        radius: 10,
+        color: dotColor,
+        opacity: strokeOpacityOpt,
+        weight: borderWeight,
+        fillColor: dotColor,
+        fillOpacity: fillOpt,
+        stroke: strokeOpt,
+      };
+
+      // ------------------------------
+      // 既存マーカーを更新
+      // ------------------------------
+      if (markers[s.id]) {
+        if (
+          typeof markers[s.id].setLatLng === "function" &&
+          typeof markers[s.id].setStyle === "function"
+        ) {
+          markers[s.id].setStyle(dotOptions);
+          markers[s.id].setPopupContent(popupContent);
+        } else {
+          map.removeLayer(markers[s.id]);
+          markers[s.id] =
+            L.circleMarker(
+              L.latLng(s.lat, s.lng),
+              dotOptions
+            )
+            .addTo(map)
+            .bindPopup(popupContent);
+        }
+      } else {
+        markers[s.id] =
+          L.circleMarker(
+            L.latLng(s.lat, s.lng),
+            dotOptions
+          )
+          .addTo(map)
+          .bindPopup(popupContent);
+      }
+    } else {
+
+      // ====================================================
+      // 通常・rcmスポット（画像ピン）
+      // ====================================================
+      if (markers[s.id]) {
+        if (typeof markers[s.id].setIcon === "function") {
+          markers[s.id].setIcon(myHandmadeIcon);
+          markers[s.id].setPopupContent(popupContent);
+        } else {
+          map.removeLayer(markers[s.id]);
+          markers[s.id] =
+            L.marker(
+              L.latLng(s.lat, s.lng),
+              { icon: myHandmadeIcon }
+            )
+            .addTo(map)
+            .bindPopup(popupContent);
+        }
+      } else {
+        markers[s.id] =
+          L.marker(
+            L.latLng(s.lat, s.lng),
+            { icon: myHandmadeIcon }
+          )
+          .addTo(map)
+          .bindPopup(popupContent);
+      }
+    }
+  });
+}  
+
+// ========================================================================================================
+// 🦊 クエストマーカーを表示
+// ====================================================
+function updateQuestMarkers() {
+  const questPointIcon = L.icon({
+    iconUrl: "quest_point_pin.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -42]
+  });
+
+  quests.forEach(q => {
+
+    // 必要なキーを持っていなければ、地図には表示しない
+    if (
+      q.requiredKey &&
+      !localStorage.getItem("key_" + q.requiredKey)
+    ) {
+      return;
+    }
+   // すでにピンがあれば、内容だけ最新状態に更新
+    if (questMarkers[q.id]) {
+      updateQuestPopup(q);
+      return;
+    }
+    const questIcon = L.icon({
+      iconUrl: "quest_pin.png",
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+      popupAnchor: [0, -42]
+    });
+    
+    // ピンを押したときに出る内容
+    // 🦊 クエストのクリア状況を確認
+    const questClearTime = localStorage.getItem(
+      "quest_clear_time_" + q.id
+    );
+    const stampImageUrl =
+      q.stampImage ? q.stampImage : "stmpon.png";
+        
+    const popupStamp = questClearTime
+      ? `
+        <img
+          src="${stampImageUrl}"
+          alt="クエストクリアスタンプ"
+          style="
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            margin-bottom: 5px;
+          "
+        >
+        <div style="
+          font-size: 13px;
+          color: #7f756b;
+          margin-bottom: 8px;
+        ">
+          ＼クエストクリア／
+          <br>
+          <span style="font-size: 11px;">
+            ${formatJapaneseDateTime(new Date(questClearTime))}
+          </span>
+        </div>
+        `
+      : `
+        <div style="
+          font-size: 12px;
+          color: #999;
+          margin-bottom: 8px;
+        ">
+          ＼まだクリアしていないよ／
+        </div>
+      `;
+
+    const popupContent = `
+      <div style="
+        text-align: center;
+        font-family: sans-serif;
+        min-width: 140px;
+      ">
+    
+        ${popupStamp}
+    
+        <div style="
+          font-size: 16px;
+          font-weight: bold;
+          margin-bottom: 8px;
+        ">
+          ${q.name}
+        </div>
+    
+        <div style="
+          font-size: 13px;
+          color: #666;
+          text-align: left;
+          line-height: 1.8;
+        ">
+          ${q.info}
+        </div>
+    
+      </div>
+    `;
+    
+    // 開始地点にクエストピンを立てる
+    questMarkers[q.id] = L.marker(
+      [q.startLat, q.startLng],
+      { icon: questIcon }
+    )
+    .addTo(map)
+    .bindPopup(popupContent);
+    updateQuestPopup(q);
+  });
+  
+  // ==========================================
+  // 🦊 クリア済みクエストだけピンを変更
+  // ==========================================
+   quests.forEach(q => {
+
+    const clearTime = localStorage.getItem(
+      "quest_clear_time_" + q.id
+    );
+    if (clearTime || (currentQuest && currentQuest.id === q.id)) {
+      updateQuestPinImage(q);
+    }
+  });
+
+  // 🦊 発見済みのクリアポイントを復元
+  quests.forEach(q => {
+    q.clearPoints.forEach((point, index) => {
+      const foundKey =
+        "quest_point_found_" + q.id + "_" + index;
+
+      const foundTime = localStorage.getItem(foundKey);
+      // 発見していないポイントは何もしない
+      if (!foundTime) {
+        return;
+      }
+      const stampImageUrl =
+        point.image
+          ? point.image
+          : q.stampImage
+            ? q.stampImage
+            : "stmpon.png";
+  
+      const pointInfo =
+        point.info
+          ? point.info
+          : q.clearInfo;
+      //🦊 ポイント発見！
+      const clearPopupContent = `
+        <div style="
+          text-align:center;
+          font-family:sans-serif;
+          min-width:180px;
+        ">
+
+          <div style="
+            font-size:14px;
+            /*font-weight:bold;*/
+            margin-bottom:8px;
+          ">
+            ${q.name}
+          </div>
+
+          <img
+            src="${stampImageUrl}"
+            alt="クエストスタンプ"
+            style="
+              width:70px;
+              height:70px;
+              object-fit:contain;
+              margin-bottom:5px;
+            "
+          >
+
+          <div style="
+            font-size:15px;
+            font-weight:bold;
+            margin-bottom:5px;
+          ">
+            ${point.name}
+
+          </div>
+
+          <div style="
+            font-size:11px;
+            color:#7f756b;
+            margin-bottom:10px;
+          ">
+            ${formatJapaneseDateTime(new Date(foundTime))}
+          </div>
+
+          <div style="
+            border-top:1px solid #ddd;
+            padding-top:10px;
+            text-align:left;
+            font-size:13px;
+            line-height:1.6;
+            color:#555;
+          ">
+           ${pointInfo || ""}
+          </div>
+        </div>
+      `;
+
+      const markerKey = q.id + "_" + index;
+      // まだマーカーがなければ復元
+      if (!questClearMarkers[markerKey]) {
+        const clearMarker = L.marker(
+          [point.lat, point.lng],
+          {
+            icon: questPointIcon
+          }
+        ).addTo(map);
+          clearMarker.bindPopup(clearPopupContent);
+          questClearMarkers[markerKey] = clearMarker;
+      } else {
+        questClearMarkers[markerKey]
+          .setPopupContent(clearPopupContent);
+      }
+    });
+  });
+}
+
+//クエストマーカー
+function updateQuestPopup(q) {
+  if (!questMarkers[q.id]) {
+    return;
+  }
+  // 最新のクリア状況を確認
+  const questClearTime = localStorage.getItem(
+    "quest_clear_time_" + q.id
+  );
+  const stampImageUrl =
+    q.stampImage ? q.stampImage : "stmpon.png";
+  const popupClearStatus = questClearTime
+    ? `
+      <div style="
+        font-size: 13px;
+        color: #7f756b;
+        margin-bottom: 8px;
+      ">
+        ＼クエストクリア／
+      </div>
+    `
+    : `
+      <div style="
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 8px;
+      ">
+        ＼まだクリアしていないよ／
+      </div>
+    `;
+  const popupImage = questClearTime
+    ? `
+      <img
+        src="${stampImageUrl}"
+        alt="クエストクリアスタンプ"
+        style="
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          margin-bottom: 5px;
+        "
+      >
+    `
+    : "";
+  const popupDate = questClearTime
+    ? `
+      <div style="
+        font-size: 13px;
+        color: #7f756b;
+        margin-bottom: 8px;
+      ">
+        <span style="font-size: 11px;">
+          ${formatJapaneseDateTime(new Date(questClearTime))}
+        </span>
+      </div>
+    `
+    : "";
+  // クエスト未クリアならスタートボタンを表示
+  const startButton =
+    !questClearTime &&
+    (!currentQuest || currentQuest.id !== q.id)
+      ? `
+        <button
+          onclick="startQuestFromPopup('${q.id}')"
+          style="
+            width:100%;
+            margin-top:10px;
+            padding:9px 10px;
+            border:none;
+            border-radius:5px;
+            background:#bd1928;
+            color:white;
+            font-size:14px;
+            font-weight:bold;
+            cursor:pointer;
+          "
+        >
+          🦊 クエストスタート
+        </button>
+      `
+      : "";
+ 
+    // 挑戦中のクエストなら「クエストをやめる」を表示
+    const stopButton =
+      !questClearTime && currentQuest && currentQuest.id === q.id
+        ? `
+          <button
+            onclick="stopQuestFromPopup('${q.id}')"
+            style="
+              width:100%;
+              margin-top:6px;
+              padding:8px 10px;
+              border:1px solid #999;
+              border-radius:5px;
+              background:#fff;
+              color:#666;
+              font-size:13px;
+              cursor:pointer;
+            "
+          >
+            クエストをやめる
+          </button>
+        `
+        : "";
+ 
+  const popupContent = `
+    <div style="
+      text-align: center;
+      font-family: sans-serif;
+      min-width: 140px;
+    ">
+    ${popupClearStatus}
+    <div style="
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    ">
+      ${q.name}
+    </div>
+    
+    <div style="
+      font-size: 13px;
+      color: #666;
+      text-align: left;
+      line-height: 1.8;
+    ">
+      ${q.info}
+    </div>
+    
+    ${questClearTime ? `
+      <div style="
+        border-top: 1px solid #ddd;
+        margin-top: 12px;
+        padding-top: 10px;
+      "></div>
+ 
+      ${popupImage}
+      ${popupDate}
+    
+      <div style="
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #555;
+      ">
+        ${q.clearInfo || ""}
+      </div>
+    ` : ""}
+   
+      ${startButton}
+      ${stopButton}
+    </div>
+  `;
+  
+  // ポップアップの中身だけ更新
+  questMarkers[q.id].setPopupContent(popupContent);
+}
+// ====================================================
+// 🦊 ポップアップからクエストをスタート
+// ====================================================
+function startQuestFromPopup(id) {
+  const q = quests.find(quest => quest.id === id);
+  if (!q) return;
+
+  // すでにクリア済みなら開始しない
+  const questClearTime = localStorage.getItem(
+    "quest_clear_time_" + q.id
+  );
+  if (questClearTime) {
+    alert("このクエストはすでにクリアしています！");
+    return;
+  }
+
+  // すでに別のクエストに挑戦中なら、切り替えるか確認
+  if (currentQuest && currentQuest.id !== q.id) {
+  
+    const ok = confirm(
+      `🦊 今は「${currentQuest.name}」に挑戦中だよ。\n\n` +
+      `「${q.name}」に切り替える？\n\n` +
+      `OK → 切り替える\n` +
+      `キャンセル → 今のクエストを続ける`
+    );
+    if (!ok) {
+      return;
+    }
+    // 今まで挑戦していたクエストを保存
+    const oldQuest = currentQuest;
+    // 新しいクエストに切り替える
+    currentQuest = q;
+    // 前のクエストを通常表示に戻す
+    updateQuestPinImage(oldQuest);
+    updateQuestPopup(oldQuest);
+  
+  } else { 
+    // 何も挑戦していない場合
+    currentQuest = q;
+  }
+
+  // 🦊 挑戦中のクエストを保存
+  localStorage.setItem("current_quest_id", q.id);
+  updateQuestMenu();
+
+  // 右側のクエスト選択も、挑戦中のクエストに合わせる
+  const questRadio = document.querySelector(
+    `input[name="quest_opt"][onclick="handleQuestRadio('${q.id}')"]`
+  );
+  if (questRadio) {
+    questRadio.checked = true;
+  }
+
+  // 右上のクエストアイコンを「挑戦中」に変更
+  updateQuestMenuIcon();
+  // クエストピンを「挑戦中」に変更
+  updateQuestPinImage(q);
+  // フォックスメッセージ
+  const foxMsg = document.getElementById('fox-message');
+  if (foxMsg) {
+    typeFoxMessage(`クエスト<span class='m-h-l'>「${q.name}」</span>に挑戦中だよ！<br/>ここかなと思ったら、地図左下の「🧭現在地をチェック」してね。<br/>右の「🐾 足跡」機能をつけていると便利だよ！`);
+  }
+  // クエスト開始のお知らせ
+  alert(
+    "🦊 クエスト「" + q.name + "」がはじまるよ！\n\n" +
+    "ここかなと思ったら、地図左下の「🧭現在地をチェック」してね。"
+  );
+  // ポップアップを最新状態に更新
+  updateQuestPopup(q);
+}
+
+// ====今日ここまで====
+
+function stopQuestFromPopup(id) {
+
+  const q = quests.find(quest => quest.id === id);
+  if (!q) return
+  // 本当にやめるか確認
+  const ok = confirm(
+    "🦊 「" + q.name + "」への挑戦をやめますか？"
+  );
+  if (!ok) {
+    return;
+  }
+  // クエストを終了
+  currentQuest = null;
+  localStorage.removeItem("current_quest_id");
+  updateQuestMenuIcon();
+  updateQuestMenu();
+
+  // 右メニューを「クエストが選択されていません」に戻す
+  const defaultRadio = document.querySelector(
+    'input[name="quest_opt"][value=""]'
+  );
+  if (defaultRadio) {
+    defaultRadio.checked = true;
+  }
+
+  // クエストメニューアイコンを通常状態に戻す
+  updateQuestMenuIcon();
+
+  // クエストピンを通常状態に戻す
+  updateQuestPinImage(q);
+
+  // フォックスメッセージ
+  const foxMsg = document.getElementById('fox-message');
+  if (foxMsg) {
+    //foxMsg.innerHTML ="🦊 クエストを選んで、冒険を始めよう！";
+    typeFoxMessage(`クエストを選んで、冒険を始めよう！`);
+  }
+
+  // ポップアップを最新状態に更新
+  updateQuestPopup(q);
+}
+
+  
+function updateQuestPinImage(q) {
+  // クエストピンが存在しなければ何もしない
+  if (!questMarkers[q.id]) {
+    return;
+  }
+  // 最新のクリア状況を確認
+  const clearTime = localStorage.getItem(
+    "quest_clear_time_" + q.id
+  );
+  // クエストの状態によってピン画像を変更
+  let iconUrl = "quest_pin.png";
+
+  if (clearTime) {
+    // クリア済み
+    iconUrl = "quest_clear_pin.png";
+  } else if (currentQuest && currentQuest.id === q.id) {
+    // 現在挑戦中
+    iconUrl = "quest_active_pin.png";
+  }
+
+  const questIcon = L.icon({
+    iconUrl: iconUrl,
+    iconSize: L.point(40, 40),
+    iconAnchor: L.point(20, 40),
+    popupAnchor: L.point(0, -42)
+  });
+
+  // 既存のクエストピンの画像を更新
+  if (typeof questMarkers[q.id].setIcon === "function") {
+    questMarkers[q.id].setIcon(questIcon);
+  }
+}  
+  
+// ====================================================
+// 📌 「行きたい」ボタンの処理
+// ====================================================
+// が押された時のオンオフ処理 ===
+function toggleWish(id) {
+  const wish = localStorage.getItem("wish_" + id);
+  if (wish) {
+    localStorage.removeItem("wish_" + id); // すでに登録されていれば解除（赤に戻す）
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+      typeFoxMessage(`「行ってみたい」を解除したよ！目印の色が戻ったよ！`);
+    }
+
+  } else {
+    localStorage.setItem("wish_" + id, "true"); // なければ登録（黄色にする）
+    const foxMsg = document.getElementById("fox-message");
+    if (foxMsg) {
+       typeFoxMessage(`「行ってみたい」を覚えたよ！目印が黄色になったよ！`);
+    }
+
+  }
+  updateMapMarkers(); // 地図のピンの色と、吹き出し内のボタン表示を即座に更新
+}
+  
+// ====================================================
+// 🚶 距離計算の処理
+// ====================================================
+function isNear(lat1, lng1, lat2, lng2, radius) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c < radius;
+}
+
+// ====================================================
+// 🦊 クエストのクリア地点に到着したか判定
+// ====================================================
+function checkQuestClear() {
+  // 現在クエストが選ばれていなければ何もしない
+  if (!currentQuest) {
+    return false;
+  }
+  // 現在地がまだ取得できていなければ何もしない
+  if (currentLat === null || currentLng === null) {
+    return false;
+  }
+  const questPointIcon = L.icon({
+    iconUrl: "quest_point_pin.png",
+    iconSize: L.point(40, 40),
+    iconAnchor: L.point(20, 40),
+    popupAnchor: L.point(0, -42)
+  });
+  // すでにクリア済みなら何もしない
+  if (localStorage.getItem("quest_clear_time_" + currentQuest.id)) {
+    return true;
+  }
+  // ==========================================
+  // 🦊 各クリア地点をチェック
+  // ==========================================
+  let foundNewPoint = false;
+  currentQuest.clearPoints.forEach((point, index) => {
+    //alert("clearPointsの中に入りました");
+    // この地点をすでに発見しているか確認
+    const foundKey =
+      "quest_point_found_" +
+      currentQuest.id +
+      "_" +
+      index;
+    //alert("foundKey：" + foundKey + "\n保存値：" + localStorage.getItem(foundKey));
+    //localStorage.removeItem(foundKey);
+    if (localStorage.getItem(foundKey)) {
+      return;
+    }
+    // 現在地とクリア地点の距離をチェック
+    const near = isNear(
+      currentLat,
+      currentLng,
+      point.lat,
+      point.lng,
+      point.radius
+    );    
+    // まだ近づいていなければ何もしない
+    if (!near) {
+      return;
+    }
+
+    // ==========================================
+    // 🎉 新しい地点を発見！
+    // ==========================================
+    const now = new Date();
+    localStorage.setItem(
+      foundKey,
+      now.toISOString()
+    );
+    foundNewPoint = true;
+    // ------------------------------------------
+    // クリア地点ポップアップ🦊 ポイント発見！
+    // ------------------------------------------
+    const stampImageUrl =
+      point.image
+        ? point.image
+        : currentQuest.stampImage
+          ? currentQuest.stampImage
+          : "stmpon.png";
+    const pointInfo =
+      point.info
+        ? point.info
+        : currentQuest.clearInfo;
+    const clearPopupContent = `
+      <div style="
+        text-align:center;
+        font-family:sans-serif;
+        min-width:180px;
+      ">
+        <div style="
+          font-size:14px;
+          /*font-weight:bold;*/
+          margin-bottom:8px;
+        ">
+          ${currentQuest.name}
+        </div>
+        <img
+          src="${stampImageUrl}"
+          alt="クエストスタンプ"
+          style="
+            width:70px;
+            height:70px;
+            object-fit:contain;
+            margin-bottom:5px;
+          "
+        >
+        <div style="
+          font-size:15px;
+          font-weight:bold;
+          margin-bottom:5px;
+        ">
+          ${point.name}
+        </div>
+        <div style="
+          font-size:11px;
+          color:#7f756b;
+          margin-bottom:10px;
+        ">
+          ${formatJapaneseDateTime(now)}
+        </div>
+        <div style="
+          border-top:1px solid #ddd;
+          padding-top:10px;
+          text-align:left;
+          font-size:13px;
+          line-height:1.6;
+          color:#555;
+        "> 
+          ${pointInfo || ""}
+        </div>
+      </div>
+    `;
+
+    // まだクリア地点マーカーがなければ作る
+    if (!questClearMarkers[`${currentQuest.id}_${index}`]) {
+     const clearMarker = L.marker(
+        [point.lat, point.lng],
+        {
+          icon: questPointIcon
+        }
+      ).addTo(map);
+      clearMarker.bindPopup(clearPopupContent);
+      questClearMarkers[
+        `${currentQuest.id}_${index}`
+      ] = clearMarker;
+    } else {
+      // すでにあれば内容だけ更新
+      questClearMarkers[
+        `${currentQuest.id}_${index}`
+      ].setPopupContent(clearPopupContent);
+    }
+    // 発見した地点のポップアップを開く
+    questClearMarkers[
+      `${currentQuest.id}_${index}`
+    ].openPopup();
+  });
+
+  // ==========================================
+  // 🦊 必須地点を全部発見したか確認
+  // ==========================================
+  const allRequiredFound =
+    currentQuest.clearPoints
+      .filter(point => point.required)
+      .every((point, index) => {
+
+        const pointIndex =
+          currentQuest.clearPoints.indexOf(point);
+
+        return localStorage.getItem(
+          "quest_point_found_" +
+          currentQuest.id +
+          "_" +
+          pointIndex
+        );
+      });
+
+  // 必須地点がまだ残っていれば、
+  // クエストはまだコンプリートしない
+  if (!allRequiredFound) {
+
+    const foundCount =
+      currentQuest.clearPoints.filter((point, index) =>
+        localStorage.getItem(
+          "quest_point_found_" +
+          currentQuest.id +
+          "_" +
+          index
+        )
+      ).length;
+
+    const totalCount =
+      currentQuest.clearPoints.length;
+
+    const foxMsg =
+      document.getElementById('fox-message');
+
+    if (foxMsg) {
+      typeFoxMessage(`ポイント発見！<br/>${foundCount} / ${totalCount} のポイントを見つけたよ！`);
+    }
+
+    // 🦊 ポイント発見数をクエストメニューに反映
+    updateQuestMenu();
+    return foundNewPoint ? "found" : false;
+  }
+
+  // ==========================================
+  // 🎉 クエストコンプリート！
+  // ==========================================
+
+  const now = new Date();
+  
+  localStorage.setItem(
+    "quest_clear_time_" + currentQuest.id,
+    now.toISOString()
+  );
+  // 🔑 クエスト報酬の鍵を獲得
+  if (currentQuest.rewardKey) {
+    localStorage.setItem(
+      "key_" + currentQuest.rewardKey,
+      "1"
+    );
+  }
+  const clearedQuest = currentQuest;
+  
+  // 🦊 クリアしたことを保存・画面にも反映
+  const foxMsg =
+    document.getElementById('fox-message');
+  
+    if (foxMsg) {
+      typeFoxMessage(`${clearedQuest.name}」クリア！<br>「${clearedQuest.keyName}」を手に入れたよ！`);
+    }  
+  updateQuestMarkers();
+  showStamps();
+  
+  updateQuestPopup(clearedQuest);
+  updateQuestPinImage(clearedQuest);
+  
+  // 🦊 挑戦中クエストを終了
+  currentQuest = null;
+  localStorage.removeItem("current_quest_id");
+  updateQuestMenuIcon();
+  updateQuestMenu();
+  
+  // 🦊 最終ポイントのポップアップを閉じたあとにクリア表示
+  const lastPointMarker =
+    questClearMarkers[
+      `${clearedQuest.id}_${clearedQuest.clearPoints.length - 1}`
+    ];
+  
+  if (lastPointMarker) { 
+    lastPointMarker.once("popupclose", function () {
+      alert(
+        "🦊 クエスト「" +
+        clearedQuest.name +
+        "」をクリアしたよ！\n\n" +
+        "「" + clearedQuest.keyName + "」を手に入れたよ！"
+      );
+      
+      // 🧭 アラートを閉じたあとに方位磁石をドロン！
+      if (clearedQuest.rewardKey === "key01") {
+            alert("「方位磁石」をゲットしたから画面の左上を見て！");
+        createCompass();
+        const compass =
+          document.getElementById(
+            'my-compass-wrapper'
+          );
+      
+        if (compass) {
+          compass.classList.add(
+            'compass-doron'
+          );
+      
+          setTimeout(() => {
+            compass.classList.remove(
+              'compass-doron'
+            );
+          }, 1000);
+        }
+      }
+      // 🦊 スタート地点へ移動
+
+      map.setView(
+        [clearedQuest.startLat, clearedQuest.startLng],
+        17
+      );
+      
+      // 🦊 スタート地点のクリア済みポップアップを開く
+      if (questMarkers[clearedQuest.id]) {
+        questMarkers[clearedQuest.id].openPopup();
+      
+        // ポップアップを開いたあとに、少し下へ移動
+        setTimeout(() => {
+          map.panBy([0, 0]);
+        }, 100);
+      }
+    });  
+  }
+  return true;
+}
+
+  
+// === 📍 現在地をチェック（位置表示のみに変更） ===
+function checkLocation() {
+  alert("🛰️ 現在地チェック開始");
+  if (!navigator.geolocation) {
+    alert("このブラウザは位置情報に対応していません");
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      // 取得した緯度経度を記憶する
+      currentLat = pos.coords.latitude;
+      currentLng = pos.coords.longitude;
+      const result = checkQuestClear();
+
+      if (currentLocationMarker) {
+        map.removeLayer(currentLocationMarker);
+      }
+      currentLocationMarker = L.circleMarker(
+        [currentLat, currentLng],
+        {
+          radius: 8,
+          color: "blue",
+          fillColor: "blue",
+          fillOpacity: 0.8
+        }
+      ).addTo(map); 
+      map.setView([currentLat, currentLng], 16);
+  
+      currentDisplayGroup = "all"; 
+      updateMapMarkers();          
+      
+      const allRadio = document.querySelector('input[name="filter_opt"][onclick="handleFilterRadio(\'all\')"]');
+      if (allRadio) allRadio.checked = true;   
+      const foxMsg = document.getElementById('fox-message');
+      if  (foxMsg && result === false){
+        typeFoxMessage(`<span class='m-h-l'>青い丸が現在地だよ！</span><br/>右の「足跡ボタン」を使うと常に現在地が更新されるよ！`);
+      }
+    },
+    err => {
+      alert("位置情報が取得できませんでした。\n理由: " + err.message);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+
+// ====================================================
+// 🚶 スタンプ判定の処理
+// ====================================================
+function tryGetStamp(id) {
+  const foxMsg = document.getElementById('fox-message');
+  // 対象のスポットデータを特定
+  const s = spots.find(spot => spot.id === id);
+  // もし足跡機能（myNewWatchId）がオフで、現在地データがまだ無い場合、
+  // あるいは足跡はオフだけどいきなり押された場合は、その場で自動的に現在地をチェックする
+  if (myNewWatchId === null) {
+    if (foxMsg) foxMsg.innerHTML = ``;//あとでやる
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        // 現在地を自動で更新
+        currentLat = pos.coords.latitude;
+        currentLng = pos.coords.longitude;
+        // マップ上の青丸マークも自動で移動・表示
+        if (currentLocationMarker) {
+          currentLocationMarker.setLatLng([currentLat, currentLng]);
+        } else {
+          currentLocationMarker = L.circleMarker([currentLat, currentLng], {
+            radius: 8, color: "blue", fillColor: "blue", fillOpacity: 0.8
+          }).addTo(map);
+        }
+        // 位置が取れたので、そのまま即座に距離判定を実行
+        processStampVerification(s);
+      },
+      err => {
+        // 位置情報自体がスマホの設定等で完全にブロックされている場合のアラート
+        alert("位置情報の取得に失敗しました。右上の『🐾』で足跡スタートをオンにするか、端末のGPS設定をご確認してください");
+        if (foxMsg) foxMsg.innerHTML = `GPSの電波が届かないみたいだよ。端末の位置情報設定を確認してね。`;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  } else {
+    // 足跡機能がすでにオンなら、常に最新位置が手元にあるので、そのまま即座に判定
+    processStampVerification(s);
+  }
+}
+
+
+// ====================================================
+// 📅 日時を「令和八年八月二十七日 十四時三分」に変換
+// ====================================================
+function formatJapaneseDateTime(date) {
+  const kanjiNums = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二", "十三", "十四", "十五", "十六", "十七","十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四","二十五", "二十六", "二十七", "二十八", "二十九", "三十", "三十一"];
+  const kanjiMinutes = [ "零", "一", "二", "三", "四", "五", "六", "七", "八", "九","十", "十一", "十二", "十三", "十四", "十五", "十六", "十七","十八", "十九", "二十", "二十一", "二十二", "二十三", "二十四","二十五", "二十六", "二十七", "二十八", "二十九", "三十","三十一", "三十二", "三十三", "三十四", "三十五", "三十六","三十七", "三十八", "三十九", "四十", "四十一", "四十二", "四十三", "四十四", "四十五", "四十六", "四十七", "四十八","四十九", "五十", "五十一", "五十二", "五十三", "五十四","五十五", "五十六", "五十七", "五十八", "五十九"];
+  const reiwaYear = date.getFullYear() - 2018;
+  const kanjiYear = kanjiNums[reiwaYear];
+  const kanjiMonth = kanjiNums[date.getMonth() + 1];
+  const kanjiDay = kanjiNums[date.getDate()];
+  const kanjiHour = kanjiNums[date.getHours()];
+  const kanjiMin = kanjiMinutes[date.getMinutes()];
+  return ("令和" + kanjiYear + "年" +kanjiMonth + "月" +kanjiDay + "日 " + kanjiHour + "時" +kanjiMin + "分");
+}
+
+
+// ====================================================
+// 実際に距離を測ってスタンプを付与する共通の処理
+// ====================================================
+function processStampVerification(s) {
+  const foxMsg = document.getElementById('fox-message');
+  
+  if (isNear(currentLat, currentLng, s.lat, s.lng, s.radius)) {
+    localStorage.setItem("stamp_" + s.id, "true");
+    const now = new Date();
+    const timeStr = formatJapaneseDateTime(now);    
+    localStorage.setItem("stamp_time_" + s.id, timeStr);          
+    if (foxMsg) {
+      //foxMsg.innerHTML ="";    
+      typeFoxMessage(`「${s.name}」にたどり着いたね！おめでとう！`);
+    }
+    alert("🦊「" + s.name + "」の印を手に入れました"); 
+    updateMapMarkers(); // マーカーのイラストを緑に変える
+    showStamps();       // スタンプ帳の表示を更新
+  } else {
+    if (foxMsg) {
+      typeFoxMessage(`「🧭現在地をチェック」か「🐾足跡をつける」で今いる場所を確認して、近くに行ってからもう一度押してみてね。`);
+    }
+    alert("🦊 残念、まだ「" + s.name + "」の近くにいません。もっと近づいてからもう一度押してね。");
+  }
+}
+
+
+// ====================================================
+// 📖 スタンプ帳表示
+// mode:
+//   'all' → 全て表示
+//   'got' → 獲得済みだけ表示
+// ====================================================
+function showStamps(mode = 'all') {
+  const div = document.getElementById("stamps");
+  // スタンプ帳のタイトル
+  div.innerHTML = `
+    <h3 class="inventory-title">持ち物</h3>
+    <div class="stamp-category-title">
+      クエストでゲットしたもの
+    </div> 
+    <div class="stamp-grid" id="quest-rewards">
+    </div>
+    <h3 class="inventory-title">御集印帳</h3>
+  `;
+  // ====================================================
+  // 分類ごとの設定
+  // ====================================================
+  const categories = [
+    {
+      prefix: "bld",
+      title: "建造物"
+    },
+    {
+      prefix: "dfc",
+      title: "防御施設"
+    },
+    {
+      prefix: "twn",
+      title: "町名標示"
+    },
+    {
+      prefix: "now",
+      title: "現存"
+    },
+    {
+      prefix: "rcm",
+      title: "言い伝え"
+    }
+  ];
+
+  // ====================================================
+  // 分類ごとに表示
+  // ====================================================
+  categories.forEach(category => {
+    // この分類に属するスポットだけ取り出す
+    const categorySpots = spots.filter(s =>
+      s.id && s.id.startsWith(category.prefix)
+    );
+    // 「獲得したスタンプ」の場合は、獲得済みだけに絞り込む
+    const displaySpots = categorySpots.filter(s => {
+      const got = localStorage.getItem("stamp_" + s.id);
+      if (mode === "got") {
+        return got;
+      }
+      return true;
+    });
+    // この分類に表示するものが1つもなければ、見出し自体を表示しない
+    if (displaySpots.length === 0) {
+      return;
+    }
+    // ==================================================
+    // 分類タイトル
+    // ==================================================
+    div.innerHTML += `
+      <h4 class="stamp-category-title">
+        ${category.title}
+      </h4>
+    `;
+    // ==================================================
+    // この分類専用のグリッド
+    // ==================================================
+    div.innerHTML += `
+      <div class="stamp-grid" id="stamp-grid-${category.prefix}">
+      </div>
+    `;
+    const grid = document.getElementById(
+      "stamp-grid-" + category.prefix
+    );
+    // ==================================================
+    // スタンプを1個ずつ配置
+    // ==================================================
+    displaySpots.forEach(s => {
+      const got = localStorage.getItem("stamp_" + s.id);
+      // ----------------------------------------------
+      // スタンプ画像
+      // ----------------------------------------------
+      let stampImageUrl;
+      if (got) {
+        stampImageUrl = s.imgOn ? s.imgOn : "stmpon.png";
+      } else {
+        stampImageUrl = s.imgOf ? s.imgOf : "stmpof.png";
+      }
+      // ----------------------------------------------
+      // グリッドの1マス
+      // ----------------------------------------------
+      grid.innerHTML += `
+        <div class="stamp-item" onclick="jumpToSpot('${s.id}')">
+          <img
+            src="${stampImageUrl}"
+            alt="スタンプ"
+            class="stamp-image"
+          >
+          <div class="stamp-name">
+            ${s.name}
+          </div>
+
+        </div>
+      `;
+    });
+  });
+  // ====================================================
+  // 🦊 ディスプレイ　クエスト
+  // ====================================================
+  // 「獲得したスタンプ」の場合は、クリア済みだけ表示
+  const displayQuests = quests;  
+  // 表示するクエストがある場合だけ表示
+  if (displayQuests.length > 0) {
+    const questGrid =
+      document.getElementById("quest-rewards");
+    // 表示対象のクエストを1個ずつ配置
+    displayQuests.forEach(q => {
+      // クリア日時が保存されているか確認
+      const clearTime = localStorage.getItem(
+        "quest_clear_time_" + q.id
+      ); 
+      // クリア済みなら専用スタンプ
+      // 未クリアなら「まだ」の画像
+      const isLocked =
+        q.requiredKey &&
+        !localStorage.getItem("key_" + q.requiredKey);  
+      let stampImageUrl;
+      if (isLocked) {
+        // まだ解放されていない
+        stampImageUrl = "stmplock.png";
+      } else if (clearTime) {
+        // 解放済みでクリア済み
+        stampImageUrl =
+          q.stampImage ? q.stampImage : "stmpon.png";
+      } else {
+        // 解放済みだけど、まだクリアしていない
+        stampImageUrl = "stmpof.png";
+      }
+      questGrid.innerHTML += `
+        <div
+          class="stamp-item"
+          onclick="jumpToQuest('${q.id}')"
+        >
+          <img
+            src="${stampImageUrl}"
+            alt="クエスト"
+            class="stamp-image"
+          >
+          <div class="stamp-name">
+            ${q.name}
+          </div>
+        </div>
+      `;
+    });
+  }
+} 
+
+  
+// ====================================================
+// 📖 スタンプ帳から地図のスポットへジャンプ
+// ====================================================
+function jumpToSpot(id) {
+  // 対象スポットを探す
+  const s = spots.find(spot => spot.id === id);
+  if (!s) return;
+  // --------------------------------
+  // ① 目印フィルターを「全て表示」に戻す
+  // --------------------------------
+  currentDisplayGroup = "all";
+  const allFilter = document.querySelector(
+    'input[name="filter_opt"][onclick="handleFilterRadio(\'all\')"]'
+  );
+  if (allFilter) {
+    allFilter.checked = true;
+  }
+  updateMapMarkers();
+  // --------------------------------
+  // ② 地図をその場所へ移動
+  // --------------------------------
+  map.setView([s.lat, s.lng], 18, {
+    animate: true
+  });
+  // --------------------------------
+  // ③ ページを地図まで自動スクロール
+  // --------------------------------
+  const mapElement = document.getElementById("map");
+  if (mapElement) {
+    mapElement.scrollIntoView({
+      behavior: "smooth",
+      //block: "start"
+      block: "center"
+   });
+  }
+  // --------------------------------
+  // ④ 少し待ってからピンの吹き出しを開く
+  // --------------------------------
+  setTimeout(() => {
+    if (markers[s.id]) {
+      markers[s.id].openPopup();
+    }
+  }, 500);
+}  
+
+// ====================================================
+// 📖 スタンプ帳から地図のクエストへジャンプ
+// ====================================================
+function jumpToQuest(id) {
+  // 対象クエストを探す
+  const q = quests.find(quest => quest.id === id);
+  if (!q) return;
+  // --------------------------------
+  // ① このクエストを現在選択中にする
+  // --------------------------------
+  currentQuest = q;
+  // クエストのラジオボタンも選択状態にする
+  const questRadio = document.querySelector(
+    'input[name="quest_opt"][onclick="handleQuestRadio(\'' + q.id + '\')"]'
+  );
+  if (questRadio) {
+    questRadio.checked = true;
+  }
+  // --------------------------------
+  // ② 地図をスタート地点へ移動
+  // --------------------------------
+  map.setView([q.startLat, q.startLng], 17, {
+    animate: true
+  });
+  // --------------------------------
+  // ③ ページを地図まで自動スクロール
+  // --------------------------------
+  const mapElement = document.getElementById("map");
+  if (mapElement) {
+    mapElement.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+  }
+  // --------------------------------
+  // ④ 少し待ってからクエストの吹き出しを開く
+  // --------------------------------
+  setTimeout(() => {
+    if (questMarkers[q.id]) {
+      questMarkers[q.id].openPopup();
+    }
+  }, 500);
+}
+  
+// 初期起動時の実行
+updateMapMarkers();
+showStamps();
+updateQuestMarkers();
+  
+// 画面読み込み時にLocalStorageから足跡を復活させる ===
+function restoreBreadcrumbs() {
+  const savedData = localStorage.getItem("saved_breadcrumbs");
+  if (savedData) {
+    try {
+      // 保存されていた緯度経度のリストを読み込む
+      const coordsList = JSON.parse(savedData);
+      
+      coordsList.forEach(coord => {
+        // 過去の足跡ドットを地図上に再現
+        const dot = L.circleMarker(coord, {
+          radius: 2.6, color: "#a07855", fillColor: "#a07855", fillOpacity: 0.6, stroke: false
+        }).addTo(map);
+        // 配列（箱）にも戻しておく
+        myNewTrackDots.push(dot);
+      });
+    } catch (e) {
+      console.error("足跡データの復元に失敗しました", e);
+    }
+  }
+}
+// 起動時に足跡を復元する
+restoreBreadcrumbs();
+
+
+// ====================================================
+// 🦊 フォックスメッセージ：一文字ずつ表示
+// ====================================================
+let foxTypingTimer = null;
+function typeFoxMessage(html) {
+  const foxMsg = document.getElementById("fox-message");
+  if (!foxMsg) return;
+  // 前の表示を止める
+  if (foxTypingTimer) {
+    clearInterval(foxTypingTimer);
+    foxTypingTimer = null;
+  }
+  foxMsg.innerHTML = "";
+  // 元のHTMLを一度DOMにする
+  const temp = document.createElement("div");
+  temp.innerHTML = html;
+
+  // 文字を表示する対象を順番に集める
+  const items = [];
+  function collectNodes(node) {
+    node.childNodes.forEach(child => {
+      // 普通の文字
+      if (child.nodeType === Node.TEXT_NODE) {
+        for (const char of child.textContent) {
+          items.push({
+            type: "text",
+            char: char
+          });
+        }
+
+      // HTML要素
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        items.push({
+          type: "open",
+          tag: child.tagName.toLowerCase(),
+          attributes: Array.from(child.attributes)
+        });
+        collectNodes(child);
+        items.push({
+          type: "close"
+        });
+      }
+
+    });
+  }
+
+  collectNodes(temp);
+
+  let index = 0;
+  const elementStack = [];
+
+  foxTypingTimer = setInterval(() => {
+    if (index >= items.length) {
+      clearInterval(foxTypingTimer);
+      foxTypingTimer = null;
+      return;
+    }
+    const item = items[index];
+    // HTMLタグ開始
+    if (item.type === "open") {
+      const el = document.createElement(item.tag);
+      item.attributes.forEach(attr => {
+        el.setAttribute(attr.name, attr.value);
+      });
+
+      if (elementStack.length > 0) {
+        elementStack[elementStack.length - 1]
+          .appendChild(el);
+      } else {
+        foxMsg.appendChild(el);
+      }
+      elementStack.push(el);
+    // HTMLタグ終了
+    } else if (item.type === "close") {
+      elementStack.pop();
+    // 文字
+    } else {
+      const textNode =  document.createTextNode(item.char);
+      if (elementStack.length > 0) {
+        elementStack[elementStack.length - 1]
+          .appendChild(textNode);
+      } else {
+        foxMsg.appendChild(textNode);
+      }
+    }
+    index++;
+  }, 50);
+}
+  
+// ====================================================
+// 開発用、座標表示
+// ====================================================
+let debugClickMarker = null; 
+map.on('click', function(e) {
+  const foxMsg = document.getElementById('fox-message');  
+  // クリックした場所の緯度経度を取得して丸める
+  const clickedLat = e.latlng.lat;
+  const clickedLng = e.latlng.lng;
+  const formattedLat = clickedLat.toFixed(6);
+  const formattedLng = clickedLng.toFixed(6);  
+  // 開発ツール（コンソール）にもコピー用に出力
+  console.log(`取得した座標 -> lat: ${formattedLat}, lng: ${formattedLng}`);
+  // もし、すでに前に打った古い目印があれば、地図から一度消去する
+  if (debugClickMarker) {
+    map.removeLayer(debugClickMarker);
+  }
+  // 新しい位置に、小さな黒い点を打つ
+//  debugClickMarker = L.circleMarker([clickedLat, clickedLng], {
+//    radius: 5,           // 点の大きさ
+//    color: "#000000",    // 枠線の色（黒）
+//    weight: 2,           // 枠線の太さ
+//    fillColor: "#ffffff",// 中身の色（白）
+//    fillOpacity: 0.9     // 不透明度
+//  }).addTo(map);
+  
+  if (foxMsg) {
+    //foxMsg.innerHTML = `「<span style="color:#d35400; font-size:14px; font-family:sans-serif;">lat: ${formattedLat}, lng: ${formattedLng}</span> 」`;
+  }
+});
+
+
+// ====================================================
+// 方位磁石
+// ====================================================
+function createCompass() {
+  // すでに表示されていたら何もしない
+  if (document.getElementById('my-compass-wrapper')) {
+    return;
+  }
+  const compassContainer =  document.getElementById('map');
+
+  if (!compassContainer) return;
+
+  // 方位磁石の土台
+  const compassWrapper =
+    document.createElement('div');
+  compassWrapper.id = 'my-compass-wrapper';
+  compassContainer.appendChild(
+    compassWrapper
+  );
+  compassWrapper.addEventListener("click", function(e) {
+    e.stopPropagation();
+    typeFoxMessage(
+      `左上の方位磁石が使えるよ！画面を縦にして使ってね！針の赤い方を北に合わせてね！`
+    ); 
+  });  
+
+  // 真上クルクル回転する針
+  const compassDiv = document.createElement('div');
+  compassDiv.id = 'my-live-compass';
+  compassWrapper.appendChild(
+    compassDiv
+  );
+
+  // スマホの方位センサー
+  window.addEventListener(
+    'deviceorientation',
+    function(e) {
+      let heading =
+        e.webkitCompassHeading !== undefined &&
+        e.webkitCompassHeading !== null
+          ? e.webkitCompassHeading
+          : (360 - e.alpha);
+      if (
+        heading !== undefined &&
+        heading !== null
+      ) {
+        compassDiv.style.transform =
+          'rotate(' +
+          (-heading) +
+          'deg)';
+      }
+    },
+    true
+  );
+}
+// ページ読み込み時すでに方位磁石を持っていれば表示
+if (localStorage.getItem("key_key01")) {
+  createCompass();
+}
+
+// 門番画面の「同意して始める」ボタン（agreeSafety）が押された瞬間に、センサーの許可をスマホに申請
+const originalAgreeSafety = agreeSafety; // 以前作った関数を一旦バックアップ
+agreeSafety = function() {
+  // 注意書き画面を消す処理
+  originalAgreeSafety();
+  // スマホに「方位センサーを使ってよいか」確認
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          // 方位磁石を持っている時だけ案内する
+          if (localStorage.getItem("key_key01")) {
+            const foxMsg = document.getElementById('fox-message');
+            if (foxMsg) {
+              typeFoxMessage(`左上の方位磁石が使えるよ！画面を縦にして使ってね！針の赤い方を北に合わせてね！`);
+            }
+          }
+        }       
+      })
+      .catch(console.error);
+  }
+};
+
+// ====================================================
+// ピンへワープ
+// ====================================================
+function jumpToMapMarker(spotId) {
+  // spotsデータから、指定されたIDの座標を特定
+  const s = spots.find(spot => spot.id === spotId);
+  const marker = markers[spotId];
+
+  if (s && marker) {
+    // 画面をスタンプ帳から「地図の場所」へ
+    const mapEl = document.getElementById('map');
+    if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth' });
+
+    // 0.3秒だけ画面のスクロールを待ってから、地図をそのピンの緯度経度へ自動移動（ワープ）
+    setTimeout(() => {
+      map.panTo([s.lat, s.lng]);
+      // 3. 移動が完了したら、そのピンの吹き出しを開く
+      marker.openPopup();
+    }, 300);
+  }
+}
+
+
+// ====================================================
+// 安全確認
+// ====================================================
+const originalAgreeSafetyForLink = agreeSafety;
+
+agreeSafety = function() {
+  originalAgreeSafetyForLink(); // 門番画面を消す・センサー許可の元の処理を実行
+  //URLの末尾に「?spot=11」の調べ
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetSpotId = urlParams.get('spot'); // 'spot' の後ろのIDを取得
+
+  if (targetSpotId) {
+    // 0.5秒だけ地図の読み込みを待ってから、そのピンへ自動ジャンプ
+    setTimeout(() => {
+      jumpToMapMarker(targetSpotId);
+    }, 500);
+  }
+};
+
+// 同意する」が押されたときに画面を消す
+function agreeSafety() {
+  const modal = document.getElementById('safety-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+// 注意書きを最後までスクロールしたかチェック
+document.addEventListener("DOMContentLoaded", function() {
+  const scrollBox = document.getElementById("safety-scroll");
+  const agreeBtn = document.getElementById("agree-button");
+  if (scrollBox && agreeBtn) {
+    scrollBox.addEventListener("scroll", function() {
+      // 箱全体の高さから、見えている高さを引いた「最大のスクロール位置」
+      const maxScroll = scrollBox.scrollHeight - scrollBox.clientHeight;      
+      // 現在のスクロール位置が、一番下（誤差1ピクセル以内）まで到達したか判定
+      if (scrollBox.scrollTop >= maxScroll - 1) {
+        agreeBtn.disabled = false; // ボタンのロックを解除！
+        agreeBtn.innerText = "上記の内容に同意して旅を始める"; // ボタンの文字を朱色用
+      }
+    });
+  }
+});
+</script>
+</body>
+</html>

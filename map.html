@@ -3796,10 +3796,12 @@ function createCompass() {
   );
 }
 // ページ読み込み時すでに方位磁石を持っていれば表示
-if (localStorage.getItem("key_key01")) {
-  createCompass();
-}
-
+//if (localStorage.getItem("key_key01")) {
+//  createCompass();
+//}
+//DEMO!!!!!!!一時的に方位磁石を解放している
+createCompass();
+  
 // 門番画面の「同意して始める」ボタン（agreeSafety）が押された瞬間に、センサーの許可をスマホに申請
 const originalAgreeSafety = agreeSafety; // 以前作った関数を一旦バックアップ
 agreeSafety = function() {
